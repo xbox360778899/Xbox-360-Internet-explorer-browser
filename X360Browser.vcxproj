@@ -76,6 +76,12 @@
     <ClCompile Include="src\native_main.cpp" />
     <ClCompile Include="src\image_decoder.cpp" />
     <ClCompile Include="src\styled_page.cpp" />
+    <ClCompile Include="vendor\zlib\adler32.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)zlib_adler32.obj</ObjectFileName></ClCompile>
+    <ClCompile Include="vendor\zlib\crc32.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)zlib_crc32.obj</ObjectFileName></ClCompile>
+    <ClCompile Include="vendor\zlib\inffast.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)zlib_inffast.obj</ObjectFileName></ClCompile>
+    <ClCompile Include="vendor\zlib\inflate.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)zlib_inflate.obj</ObjectFileName></ClCompile>
+    <ClCompile Include="vendor\zlib\inftrees.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)zlib_inftrees.obj</ObjectFileName></ClCompile>
+    <ClCompile Include="vendor\zlib\zutil.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)zlib_zutil.obj</ObjectFileName></ClCompile>
     <ClCompile Include="vendor\litehtml\litehtml\background.cpp"><ObjectFileName>$(IntDir)litehtml_background.obj</ObjectFileName></ClCompile>
     <ClCompile Include="vendor\litehtml\litehtml\box.cpp"><ObjectFileName>$(IntDir)litehtml_box.obj</ObjectFileName></ClCompile>
     <ClCompile Include="vendor\litehtml\litehtml\context.cpp"><ObjectFileName>$(IntDir)litehtml_context.obj</ObjectFileName></ClCompile>

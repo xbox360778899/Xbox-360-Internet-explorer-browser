@@ -27,5 +27,9 @@ static void styledChecks(){
     assert(page);browserStyledDraw(page,&canvas,0,76,1280,644,0);
     assert(screen[(76+10)*1280+10]==0x123abc);
     browserStyledDestroy(page);
-    printf("PASS: litehtml CSS, legacy media queries and readable flex/grid fallback.\n");
+    page=browserStyledCreate("<html><head><style>:root{--mygreen:#268b41;}body{margin:0}#probe{position:absolute;left:5px;top:5px;width:64px;height:48px;background:var(--mygreen);}</style></head><body><div id='probe'></div></body></html>","https://example.com/",NULL,NULL);
+    assert(page);browserStyledDraw(page,&canvas,0,76,1280,644,0);
+    assert(screen[(76+20)*1280+20]==0x268b41);
+    browserStyledDestroy(page);
+    printf("PASS: litehtml CSS, media-query widths, root CSS variables and flex/grid readability fallback.\n");
 }

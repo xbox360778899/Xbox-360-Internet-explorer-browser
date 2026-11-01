@@ -21,7 +21,7 @@ struct HubTLSRequest {
  SOCKET socket;
  DWORD started,error,length,received,chunkLeft,maxIdleMs;
  bool lengthKnown,chunked,finished,chunkCRLF;
- char finalURL[8192],contentType[128],cacheControl[160];
+ char finalURL[8192],contentType[128],contentEncoding[32],cacheControl[160];
 };
 static bool hubNetSuffix(const char* host,const char* suffix){
  size_t a=strlen(host),b=strlen(suffix);
@@ -210,7 +210,8 @@ static bool hubNetHeaders(HubTLSRequest* r,DWORD* status,char* location,size_t l
    if(haveEncoding||_stricmp(colon,"chunked"))return false;
    haveEncoding=true;r->chunked=true;
   }else if(!_stricmp(line,"Content-Encoding")){
-   if(_stricmp(colon,"identity"))return false;
+   if(_stricmp(colon,"identity")&&_stricmp(colon,"gzip")&&_stricmp(colon,"deflate"))return false;
+   strcpy_s(r->contentEncoding,sizeof(r->contentEncoding),colon);
   }else if(!_stricmp(line,"Content-Type")){
    strncpy_s(r->contentType,sizeof(r->contentType),colon,_TRUNCATE);
   }else if(!_stricmp(line,"Cache-Control") || !_stricmp(line,"Pragma") || !_stricmp(line,"Set-Cookie")){
@@ -222,7 +223,7 @@ static bool hubNetHeaders(HubTLSRequest* r,DWORD* status,char* location,size_t l
  }
  return !(r->chunked&&r->lengthKnown);
 }
-static HubTLSRequest* hubNetOpen(const char* url,DWORD* status){
+static HubTLSRequest* hubNetOpen(const char* url,DWORD* status,DWORD timeoutMs=10000,const char* accept="text/html,application/xhtml+xml,text/plain;q=0.8"){
  char current[8192],host[128],path[8192],location[8192];
  if(!url||strlen(url)>=sizeof(current)){SetLastError(ERROR_INVALID_PARAMETER);return NULL;}
  strcpy_s(current,sizeof(current),url);
@@ -230,10 +231,10 @@ static HubTLSRequest* hubNetOpen(const char* url,DWORD* status){
   if(!hubNetURL(current,host,sizeof(host),path,sizeof(path))){SetLastError(ERROR_ACCESS_DENIED);return NULL;}
   HubTLSRequest* r=(HubTLSRequest*)calloc(1,sizeof(HubTLSRequest));
   if(!r){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return NULL;}
-  r->socket=INVALID_SOCKET;r->maxIdleMs=10000;location[0]=0;
+  r->socket=INVALID_SOCKET;r->maxIdleMs=timeoutMs;location[0]=0;
   bool ok=hubNetConnect(r,host);
   if(ok){
-   char request[8704];sprintf_s(request,sizeof(request),"GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: X360Browser/0.2.0 (Xbox 360; NativeReader)\r\nAccept: text/html,application/xhtml+xml,text/plain;q=0.8\r\nAccept-Encoding: identity\r\nAccept-Language: en-US,en;q=0.8\r\nConnection: close\r\n\r\n",path,host);
+   char request[8704];sprintf_s(request,sizeof(request),"GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: X360Browser/0.7 (Xbox 360; NativeBrowser)\r\nAccept: %s\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.8\r\nConnection: close\r\n\r\n",path,host,accept);
    r->started=GetTickCount();
    ok=br_sslio_write_all(&r->io,request,strlen(request))==0&&br_sslio_flush(&r->io)==0;
   }

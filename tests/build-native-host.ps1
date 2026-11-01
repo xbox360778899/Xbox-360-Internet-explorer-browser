@@ -3,6 +3,7 @@ $root=Split-Path $PSScriptRoot -Parent
 $project=Get-Content (Join-Path $root 'X360Browser.vcxproj') -Raw
 $units=[regex]::Matches($project,'    <ClCompile Include="vendor\\bearssl\\.*?</ClCompile>') | ForEach-Object {$_.Value.Replace('Include="vendor\','Include="..\vendor\')}
 $liteUnits=[regex]::Matches($project,'    <ClCompile Include="vendor\\litehtml\\.*?</ClCompile>') | ForEach-Object {$_.Value.Replace('Include="vendor\','Include="..\vendor\')}
+$zlibUnits=[regex]::Matches($project,'    <ClCompile Include="vendor\\zlib\\.*?</ClCompile>') | ForEach-Object {$_.Value.Replace('Include="vendor\','Include="..\vendor\')}
 $xml=@'
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations"><ProjectConfiguration Include="Release|Win32"><Configuration>Release</Configuration><Platform>Win32</Platform></ProjectConfiguration></ItemGroup>
@@ -23,11 +24,12 @@ $xml=@'
     <ClCompile Include="..\vendor\orbita\xui_text.c"><CompileAs>CompileAsCpp</CompileAs></ClCompile>
 UNITS
 LITEUNITS
+ZLIBUNITS
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
 '@
-$xml=$xml.Replace('LITEUNITS',($liteUnits -join "`n")).Replace('UNITS',($units -join "`n"))
+$xml=$xml.Replace('LITEUNITS',($liteUnits -join "`n")).Replace('ZLIBUNITS',($zlibUnits -join [Environment]::NewLine)).Replace('UNITS',($units -join "`n"))
 $target=Join-Path $root 'obj\NativeHost.vcxproj'
 [IO.File]::WriteAllText($target,$xml)
 & "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe" $target '/p:Configuration=Release' '/p:Platform=Win32' /v:minimal /nologo

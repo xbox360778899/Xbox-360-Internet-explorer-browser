@@ -1,4 +1,5 @@
 #pragma once
+#include "../vendor/zlib/zlib.h"
 enum {WEB_DOWNLOAD_HTML=0,WEB_DOWNLOAD_IMAGE=1,WEB_DOWNLOAD_VIDEO=2};
 struct WebDownload {unsigned char* bytes;DWORD size;int kind;char url[WEB_URL],type[128];bool truncated,cacheHit;};
 // A small in-memory cache: bounded, expiring, and restricted to public resources.
@@ -48,7 +49,8 @@ static void webCacheStore(const char* key,const WebDownload* in){
 static bool webVideoExtension(const char* url){const char* end=strchr(url,'?');size_t n=end?(size_t)(end-url):strlen(url);return n>=4 && (webPrefix(url+n-4,".wmv")||webPrefix(url+n-4,".xmv"));}
 static bool webDownload(const char* url,WebDownload* result,char* message,size_t messageSize,bool imageOnly=false,bool resourceOnly=false) {
     memset(result,0,sizeof(*result));if(webCacheLookup(url,result,imageOnly))return true;
-    DWORD status=0;HubTLSRequest* request=hubNetOpen(url,&status);
+    const char* accept=resourceOnly?"text/css,*/*;q=0.7":imageOnly?"image/png,image/jpeg,image/gif,image/bmp,*/*;q=0.5":"text/html,application/xhtml+xml,text/plain;q=0.8";
+    DWORD status=0;HubTLSRequest* request=hubNetOpen(url,&status,resourceOnly?5500:10000,accept);
     if(!request){errorMessage(message,messageSize,GetLastError());return false;}
     strncpy_s(result->url,sizeof(result->url),request->finalURL,_TRUNCATE);strcpy_s(result->type,request->contentType);
     bool image=webPrefix(request->contentType,"image/");
@@ -68,8 +70,34 @@ static bool webDownload(const char* url,WebDownload* result,char* message,size_t
         if(result->kind==WEB_DOWNLOAD_HTML)result->truncated=true;
         else {DWORD extra=0;unsigned char byte;if(!hubNetRead(request,&byte,1,&extra)||extra)ok=false;}
     }
-    if(!ok){errorMessage(message,messageSize,hubNetError(request));free(result->bytes);result->bytes=NULL;}
-    else result->bytes[result->size]=0;
+    if(ok && request->contentEncoding[0] && _stricmp(request->contentEncoding,"identity")){
+        DWORD maxOutput=result->kind==WEB_DOWNLOAD_IMAGE?2*1024*1024:
+                        result->kind==WEB_DOWNLOAD_VIDEO?64*1024*1024:WEB_HTML_LIMIT;
+        unsigned char* inflated=(unsigned char*)malloc(maxOutput+1);
+        if(!inflated){ok=false;strcpy_s(message,messageSize,"Not enough RAM to decompress website.");}
+        else {
+            z_stream z;memset(&z,0,sizeof(z));
+            int format=!_stricmp(request->contentEncoding,"gzip")?15+16:15;
+            int err=inflateInit2(&z,format);
+            if(err==Z_OK){
+                z.next_in=(Bytef*)result->bytes;z.avail_in=result->size;
+                z.next_out=inflated;z.avail_out=maxOutput;
+                err=inflate(&z,Z_FINISH);
+                inflateEnd(&z);
+            }
+            if(err!=Z_STREAM_END || z.total_out>maxOutput){
+                ok=false;strcpy_s(message,messageSize,"Compressed response invalid or above memory limit.");
+            }else{
+                free(result->bytes);result->bytes=inflated;
+                result->size=(DWORD)z.total_out;result->bytes[result->size]=0;inflated=NULL;
+            }
+            free(inflated);
+        }
+    }
+    if(!ok){
+        if(!message[0])errorMessage(message,messageSize,hubNetError(request));
+        free(result->bytes);result->bytes=NULL;
+    }else result->bytes[result->size]=0;
     // Respect explicit privacy/revalidation directives; never cache multimedia or query URLs.
     bool permitted=!webFind(request->cacheControl,"no-store")&&!webFind(request->cacheControl,"private")&&!webFind(request->cacheControl,"no-cache")&&!webFind(request->cacheControl,"max-age=0");
     if(ok&&permitted)webCacheStore(url,result);

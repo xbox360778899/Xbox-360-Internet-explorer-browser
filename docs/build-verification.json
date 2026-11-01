@@ -1,17 +1,22 @@
 {
-  "version": "0.6.0-hardware-preview",
+  "version": "0.7.0-css-network-preview",
   "configuration": "Release | Xbox 360",
   "format": "XEX2",
   "binary": "Release/default.xex",
-  "bytes": 10825728,
-  "sha256": "3d33acca3e9a34ac789cefffe487d0239532a7cfe92b1c51498ddedc1cc21dee",
+  "bytes": 10858496,
+  "sha256": "7bdfe1eec20b637e5ed3b7a814cf92b32eb006f97c288aaa102ec2c80b115a88",
   "physical_console_test": "not performed for 0.6; 0.5 reported failing by owner",
   "home": "native shortcuts: Google, X360HUB, Wikipedia, example.com",
   "search": "Google default for all text queries",
   "ram": "GlobalMemoryStatus physical RAM in MB/%; SDK reported total may be <512 MiB",
   "performance": "network worker on hardware thread 2, frame-loop yielding, CSS/image/hover caches and bounded reflow",
-  "css": "litehtml 0.3: external+inline CSS, basic media-width fallback and flex/grid block fallback, not modern browser CSS",
-  "javascript": "not implemented",
+  "css": "legacy litehtml v0.3; external CSS, simple media queries and root variable substitutions; NOT complete flex/grid",
+  "javascript": "NOT IMPLEMENTED: no browser DOM/JS runtime",
   "mp4_h264": "not implemented",
-  "host_tests": "native host, layout/media fixture and HTTPS search/image/CSS checks passed"
+  "host_tests": "native host, layout/media fixture and HTTPS search/image/CSS checks passed",
+  "native_console": "not tested after 0.6; physical-console owner reported CSS/responsive/load issues",
+  "network": "TLS1.2 BearSSL, HTTP/1.1, gzip/deflate via zlib 1.3.1, resource-specific Accept headers",
+  "mp4": "NOT IMPLEMENTED: existing native direct WMV/XMV only",
+  "host_test": "passed (including gzip/deflate fixture)",
+  "live_site_test": "X360HUB: HTML OK, CSS 1, CSS failures 0, CSS-colored host pixels verified; host only"
 }

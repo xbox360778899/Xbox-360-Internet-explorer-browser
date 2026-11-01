@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0-css-network-preview - 2026-11-01
+
+- Vendor and compile upstream zlib 1.3.1 into both PowerPC XEX and Windows host build; request/decode gzip/deflate HTTP content under output-size limits.
+- Set resource-specific HTTP Accept for CSS and image requests; cap stylesheet inactivity to 5.5 seconds and skip Google Fonts CSS downloads since WOFF is unsupported.
+- Resolve simple :root CSS variables (var(--name)) including static fallback, and preprocess CSS only within style elements rather than the complete HTML text.
+- Add real X360HUB live CSS fetch/paint tests and compressed response decoding fixtures; fix the network CSS draw regression where an incorrect width was silently skipped.
+- Studied NetSurf and the PowerPC MacSurf port. Neither is a drop-in XEX dependency; HTML5 JavaScript/DOM, real Flex/Grid and MP4 remain unsupported in this build.
+- Host/network tests pass; hardware test still required, no false claims of full browser compatibility.
+
+
 ## 0.6.0-hardware-preview - 2026-11-01
 
 - Respond to unsuccessful physical Xbox 360 test of 0.5: prioritize page loading, responsiveness, CSS and reduced stutter.

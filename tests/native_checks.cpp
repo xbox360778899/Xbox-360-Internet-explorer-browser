@@ -46,6 +46,22 @@ static void checks() {
     printf("PASS: toolbar inactivity, menu hit testing, icon rendering and watermark visibility.\n");
     printf("PASS: native URL/search handling, entity decoding, hidden scripts/styles, clickable links and shared UI rendering.\n");
 }
+static void compressedFixtures(){
+    const char* files[]={"tests/fixtures/encoded-gzip.bin","tests/fixtures/encoded-deflate.bin"};
+    for(int j=0;j<2;++j){
+        FILE* file=fopen(files[j],"rb");assert(file);
+        unsigned char encoded[128]={0},decoded[128]={0};
+        size_t count=fread(encoded,1,sizeof(encoded),file);fclose(file);assert(count>10);
+        z_stream z;memset(&z,0,sizeof(z));
+        assert(inflateInit2(&z,j==0?15+16:15)==Z_OK);
+        z.next_in=(Bytef*)encoded;z.avail_in=(uInt)count;
+        z.next_out=(Bytef*)decoded;z.avail_out=sizeof(decoded);
+        int result=inflate(&z,Z_FINISH);inflateEnd(&z);
+        assert(result==Z_STREAM_END);
+        assert(z.total_out==44 && !memcmp(decoded,"<html><body>Compressed website</body></html>",44));
+    }
+    printf("PASS: zlib native gzip and deflate decoding.\n");
+}
 static void cacheChecks(){
     WebDownload a={0},b={0};a.bytes=(unsigned char*)malloc(5);assert(a.bytes);memcpy(a.bytes,"TEST",5);
     a.size=4;a.kind=WEB_DOWNLOAD_HTML;strcpy_s(a.url,"https://example.com/asset.css");strcpy_s(a.type,"text/css");
@@ -68,14 +84,27 @@ static void mediaChecks() {
 }
 static void networkCheck(const char* url,const char* name) {
     webNetState.cancel=0;webNetState.socketError=webNetState.tlsError=webNetState.httpCode=0;
-    DWORD status=0;HubTLSRequest* request=hubNetOpen(url,&status);
-    if(!request){printf("NETWORK %s: failed, HTTP=%lu phase=%lu socket=%lu TLS=%lu error=%lu\n",name,status,webNetState.httpPhase,webNetState.socketError,webNetState.tlsError,GetLastError());return;}
-    char* html=(char*)malloc(WEB_HTML_LIMIT+1);assert(html);DWORD received=0;bool ok=true;
-    while(received<WEB_HTML_LIMIT){DWORD count=0;DWORD want=WEB_HTML_LIMIT-received;if(want>16384)want=16384;if(!hubNetRead(request,html+received,want,&count)){ok=false;break;}if(!count)break;received+=count;}
-    html[received]=0;webParseHTML(&document,html,request->finalURL);
-    char fixturePath[128];sprintf(fixturePath,"obj/net-%s.html",name);FILE* fixture=fopen(fixturePath,"wb");if(fixture){fwrite(html,1,received,fixture);fclose(fixture);}
-    printf("NETWORK %s: HTTP=%lu bytes=%lu read=%s title=%s links=%d\n",name,status,received,ok?"OK":"FAILED",document.title,document.linkCount);
-    free(html);hubNetClose(request);
+    WebDownload page={0};char error[192]="";DWORD started=GetTickCount();
+    bool ok=webDownload(url,&page,error,sizeof(error));
+    if(ok){
+        webParseHTML(&document,(const char*)page.bytes,page.url);
+        char fixturePath[128];sprintf_s(fixturePath,sizeof(fixturePath),"obj/net-%s.html",name);
+        FILE* file=fopen(fixturePath,"wb");if(file){fwrite(page.bytes,1,page.size,file);fclose(file);}
+    }
+    printf("NETWORK %s: HTTP=%lu bytes=%lu read=%s title=%s links=%d ms=%lu %s\n",
+      name,webNetState.httpCode,page.size,ok?"OK":"FAILED",ok?document.title:"",ok?document.linkCount:0,GetTickCount()-started,error);
+    free(page.bytes);
+}
+static void networkRealCSSCheck(const char* url,const char* name){
+    webNetState.cancel=0;WebDownload dl={0};char error[192]="";DWORD start=GetTickCount();
+    bool ok=webDownload(url,&dl,error,sizeof(error));
+    void* page=ok?browserStyledCreate((const char*)dl.bytes,dl.url,webStyledResourceFetch,NULL):NULL;
+    int css=browserStyledCSSCount(page),failed=browserStyledCSSFailed(page);
+    if(!ok||!page||css<1||failed){fprintf(stderr,"FAIL: live website CSS did not load.\n");exit(5);}
+    printf("NETWORK CSS %s: HTML=%s CSS=%d failed=%d ms=%lu %s\n",
+       name,ok?"OK":"FAILED",css,failed,GetTickCount()-start,error);
+    if(page){xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);browserStyledDraw(page,&canvas,0,0,1280,720,0);printf("RENDER %s: pixel(4,4)=%06X pixel(640,400)=%06X\n",name,screen[4*1280+4]&0xffffff,screen[400*1280+640]&0xffffff);save("obj/x360hub-real.ppm");browserStyledDestroy(page);}
+    free(dl.bytes);
 }
 static void networkImageCheck() {
     WebDownload image={0};char message[192]="";webNetState.cancel=0;
@@ -86,18 +115,20 @@ static void networkImageCheck() {
 }
 static void networkStyledCheck(){
     WebDownload html={0};char message[192]="";webNetState.cancel=0;
+    DWORD started=GetTickCount();
     bool ok=webDownload("https://raw.githubusercontent.com/heltindev/X360Browser/main/tests/fixtures/layout.html",&html,message,sizeof(message));
     void* page=ok?browserStyledCreate((const char*)html.bytes,html.url,webStyledResourceFetch,NULL):NULL;
     if(page){char assetURL[WEB_URL]="";if(browserStyledNextImage(page,assetURL,sizeof(assetURL))){WebDownload asset={0};char error[192]="";if(webDownload(assetURL,&asset,error,sizeof(error),true))browserStyledCompleteImage(page,assetURL,asset.bytes,(int)asset.size);free(asset.bytes);}}
-    printf("NETWORK styled page: fetch=%s engine=%s css=%d images=%d %s\n",ok?"OK":"FAILED",page?"OK":"FAILED",browserStyledCSSCount(page),browserStyledImageCount(page),message);
-    if(page){xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);browserStyledDraw(page,&canvas,48,104,1184,550,0);save("obj/css-network.ppm");browserStyledDestroy(page);}free(html.bytes);
+    printf("NETWORK styled page: fetch=%s engine=%s css=%d failed=%d images=%d elapsed=%lu ms %s\n",ok?"OK":"FAILED",page?"OK":"FAILED",browserStyledCSSCount(page),browserStyledCSSFailed(page),browserStyledImageCount(page),GetTickCount()-started,message);
+    if(page){xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);browserStyledDraw(page,&canvas,0,76,1280,644,0);save("obj/css-network.ppm");browserStyledDestroy(page);}free(html.bytes);
 }
 int main(int argc,char**) {
     setvbuf(stdout,NULL,_IONBF,0);
     checks();
+    compressedFixtures();
     mediaChecks();
     cacheChecks();
     styledChecks();
-    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();WSACleanup();}
+    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();networkRealCSSCheck("https://x360hub.vercel.app/","X360HUB");WSACleanup();}
     return 0;
 }

@@ -5,6 +5,7 @@
 #include "master_css.h"
 #include "../vendor/litehtml/include/litehtml.h"
 #include <set>
+#include <map>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -110,6 +111,75 @@ public:
             }
         }
     }
+    static void customProperties(std::string& css) {
+        // Small legacy compatibility layer: resolve constant :root CSS variables.
+        // Scoped variables, calc(), grid, and layout algorithms remain unsupported.
+        std::map<std::string,std::string> values;
+        size_t cursor=0;
+        while(values.size()<128 && (cursor=css.find(":root",cursor))!=std::string::npos){
+            size_t open=css.find('{',cursor+5);
+            if(open==std::string::npos || open-cursor>90){cursor+=5;continue;}
+            size_t close=css.find('}',open+1);
+            if(close==std::string::npos)break;
+            std::string body=css.substr(open+1,close-open-1);
+            size_t off=0;
+            while(off<body.size()){
+                size_t stop=body.find(';',off);if(stop==std::string::npos)stop=body.size();
+                std::string item=body.substr(off,stop-off);size_t sep=item.find(':');
+                if(sep!=std::string::npos){
+                    std::string key=item.substr(0,sep), value=item.substr(sep+1);
+                    size_t b=key.find_first_not_of(" \t\r\n"),e=key.find_last_not_of(" \t\r\n");
+                    if(b!=std::string::npos)key=key.substr(b,e-b+1);
+                    b=value.find_first_not_of(" \t\r\n");e=value.find_last_not_of(" \t\r\n");
+                    if(b!=std::string::npos)value=value.substr(b,e-b+1);
+                    if(key.size()>2 && key.substr(0,2)=="--" && key.size()<96 && value.size()<256)
+                        values[key]=value;
+                }
+                off=stop+1;
+            }
+            cursor=close+1;
+        }
+        cursor=0;
+        for(int n=0;n<4096;++n) {
+            size_t start=css.find("var(",cursor);
+            if(start==std::string::npos)break;
+            size_t close=start+4;int depth=1;
+            while(close<css.size() && depth && close-start<512){
+                if(css[close]=='(')++depth;
+                else if(css[close]==')')--depth;
+                if(depth)++close;
+            }
+            if(depth){cursor=start+4;continue;}
+            std::string expression=css.substr(start+4,close-start-4);
+            size_t comma=expression.find(',');
+            std::string key=expression.substr(0,comma);
+            size_t b=key.find_first_not_of(" \t\r\n"),e=key.find_last_not_of(" \t\r\n");
+            if(b!=std::string::npos)key=key.substr(b,e-b+1);
+            std::map<std::string,std::string>::const_iterator it=values.find(key);
+            std::string replacement;
+            if(it!=values.end())replacement=it->second;
+            else if(comma!=std::string::npos){
+                replacement=expression.substr(comma+1);
+                b=replacement.find_first_not_of(" \t\r\n");
+                if(b!=std::string::npos)replacement.erase(0,b);
+            }else{cursor=close+1;continue;}
+            css.replace(start,close-start+1,replacement);
+            cursor=start+replacement.size();
+        }
+    }
+    static void preprocessStyleElements(std::string& html){
+        size_t pos=0;
+        while((pos=html.find("<style",pos))!=std::string::npos){
+            size_t open=html.find('>',pos+6);
+            if(open==std::string::npos)break;
+            size_t end=html.find("</style>",open+1);
+            if(end==std::string::npos)break;
+            std::string css=html.substr(open+1,end-open-1);
+            compatibleMediaQueries(css);legacyLayoutFallback(css);customProperties(css);
+            html.replace(open+1,end-open-1,css);
+            pos=open+1+css.size()+8;
+        }
+    }
     static void compatibleMediaQueries(std::string& css){
         // Translate straightforward CSS @media width rules for the 1280px TV viewport.
         // Complex queries still require a newer layout engine.
@@ -135,7 +205,9 @@ public:
     }
     virtual void import_css(litehtml::tstring& text,const litehtml::tstring& url,litehtml::tstring& baseurl,const litehtml::string_vector&){
         text.clear();std::string resolved=resolve(url.c_str(),baseurl.c_str());if(ready||!fetch||resolved.empty()||styles.size()>=10||styles.count(resolved)||cssBytes>=1536*1024)return;
-        styles.insert(resolved);unsigned char* bytes=NULL;int size=0;char finalURL[WEB_URL];if(fetch(context,resolved.c_str(),&bytes,&size,finalURL,sizeof(finalURL))&&size<=512*1024 && cssBytes+(unsigned)size<=1536*1024){text.assign((const char*)bytes,size);compatibleMediaQueries(text);legacyLayoutFallback(text);cssBytes+=size;++cssCount;baseurl=finalURL;}else ++cssFailed;free(bytes);
+        // Skip unavailable web fonts instead of blocking layout on another TLS handshake.
+        if(resolved.find("fonts.googleapis.com/")!=std::string::npos)return;
+        styles.insert(resolved);unsigned char* bytes=NULL;int size=0;char finalURL[WEB_URL];if(fetch(context,resolved.c_str(),&bytes,&size,finalURL,sizeof(finalURL))&&size<=512*1024 && cssBytes+(unsigned)size<=1536*1024){text.assign((const char*)bytes,size);compatibleMediaQueries(text);legacyLayoutFallback(text);customProperties(text);cssBytes+=size;++cssCount;baseurl=finalURL;}else ++cssFailed;free(bytes);
     }
     virtual void set_clip(const litehtml::position& pos,bool,bool){if(!drawing)return;clips.push_back(drawing->clip);xui_rect_t next={pos.x,pos.y,pos.width,pos.height};xui_set_clip(drawing,xui_rect_inter(drawing->clip,next));}
     virtual void del_clip(){if(drawing&&!clips.empty()){xui_set_clip(drawing,clips.back());clips.pop_back();}}
@@ -144,7 +216,7 @@ void* browserStyledCreate(const char* html,const char* url,BrowserStyleFetch fet
     if(!html||strlen(html)>1024*1024)return NULL;
     BrowserStyleContainer* page=new BrowserStyleContainer(url,fetch,user);page->engineContext.load_master_stylesheet(browserMasterCSS);
     page->engineContext.load_master_stylesheet("script,noscript,template{display:none;}body{font-family:Inter;font-size:18px;color:#111;background:#fff;}a{color:#005a33;cursor:pointer;}");
-    std::string compatibleHTML(html);BrowserStyleContainer::compatibleMediaQueries(compatibleHTML);BrowserStyleContainer::legacyLayoutFallback(compatibleHTML);
+    std::string compatibleHTML(html);BrowserStyleContainer::preprocessStyleElements(compatibleHTML);
     page->document=litehtml::document::createFromString(compatibleHTML.c_str(),page,&page->engineContext);if(!page->document){delete page;return NULL;}page->document->render(1280);page->ready=true;return page;
 }
 void browserStyledDestroy(void* handle){delete (BrowserStyleContainer*)handle;}

@@ -1,4 +1,4 @@
-# Native Xbox 360 test guide - 0.6.0-hardware-preview
+# Native Xbox 360 test guide - 0.7.0-css-network-preview
 
 On startup the preview opens its local browser:home with Google, X360HUB, Wikipedia, and Test website buttons, without a PC. During loading expect a darkened screen and spinner. Click the number beside the address bar to create/switch tabs; verify the original URL, page and scroll are retained. When the toolbar hides the page fills 1280x720. The watermark remains above the page. The dim lower-left indicator reports SDK physical RAM in MB and percentage, with no frame or CPU utilization values; CPU/GPU temperatures should appear after the SMC query when valid, otherwise N/A. Revisit the CSS layout fixture to test cache and progressive image loading. Up to four tabs can be created (closing tabs is not implemented in this preview).
 

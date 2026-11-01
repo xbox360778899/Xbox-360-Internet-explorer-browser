@@ -1,22 +1,24 @@
 # X360Browser
 
-## 0.6.0-hardware-preview changes
+## 0.7.0-css-network-preview changes
+
+This revision includes zlib 1.3.1 gzip/deflate HTTP decoding, an HTTP Accept header suitable for CSS/image requests, 5.5-second per-resource inactivity timeout, and limited constant :root CSS variable substitution for visual compatibility. It reduces repeated Google Fonts requests that this renderer cannot use. No JS/modern Flex/Grid/MP4 browser engine is claimed.
 
 The native home screen opens first (Google, X360HUB, Wikipedia and connection-test shortcuts). Search queries always go to Google; the small tab number at the top-right opens the tab picker. Create or switch among up to four tabs, each retaining its page, history and scrolling. The page fills the screen when the toolbar automatically hides. During navigation, an animated spinner appears over a dark overlay. The preview watermark is painted over the webpage.
 
 HTML and external/inline CSS are rendered before images, which load progressively. A 6 MiB RAM-only response cache speeds up revisits within 180 seconds; it is wiped when the application exits, and explicitly private/no-store/no-cache responses are not stored. CSS supports common CSS content types. This legacy litehtml engine still lacks complete modern CSS and JavaScript-driven interactivity.
 
-The dim bottom-left statistics display the physical RAM usage reported by the Xbox SDK, as MB and percentage of reported physical memory. The RAM indicator uses GlobalMemoryStatus to show SDK-reported physical memory used/available in MB and percent, not response cache size. CPU utilisation and frame-time metrics are hidden. CPU/GPU temperatures are queried read-only from the console SMC and displayed only when within a plausible range. This sensor path is not yet tested on physical hardware. This is system-wide physical RAM pressure, not just memory used by the browser. No PC helper, browser.ini or PowerPC simulator is required: the XEX is compiled natively for the console. The 0.5 preview failed on the physical console according to the owner; this 0.6 revision has passed host and SDK build tests but still requires a new physical test.
+The dim bottom-left statistics display the physical RAM usage reported by the Xbox SDK, as MB and percentage of reported physical memory. The RAM indicator uses GlobalMemoryStatus to show SDK-reported physical memory used/available in MB and percent, not response cache size. CPU utilisation and frame-time metrics are hidden. CPU/GPU temperatures are queried read-only from the console SMC and displayed only when within a plausible range. This sensor path is not yet tested on physical hardware. This is system-wide physical RAM pressure, not just memory used by the browser. No PC helper, browser.ini or PowerPC simulator is required: the XEX is compiled natively for the console. The 0.5 preview failed on the physical console according to the owner; this 0.7 revision passed SDK compilation, gzip/deflate and CSS host tests, but the physical Xbox hardware behavior is still unverified.
 
 
 
-Experimental native browser for Xbox 360 RGH/JTAG. **No PC, browser.ini or relay is required.** Version 0.6.0-hardware-preview adds full-screen pages, four switchable tabs, a dark loading animation, progressive images, a bounded RAM cache and Google as the default search provider, with a native shortcut home screen. All UI text is in English.
+Experimental native browser for Xbox 360 RGH/JTAG. **No PC, browser.ini or relay is required.** Version 0.7.0-css-network-preview adds full-screen pages, four switchable tabs, a dark loading animation, progressive images, a bounded RAM cache and Google as the default search provider, with a native shortcut home screen. All UI text is in English.
 
 ![LG-inspired browser](docs/green-home.png)
 
 ## Install
 
-For the 0.6.0-hardware-preview build use the local Release/default.xex on the build PC, copy it to USB/HDD and launch through Aurora. The existing linked 0.4.0 preview release does not contain this version. Keep the console connected to the Internet and its date/time correct for HTTPS certificates. Old INI files are ignored.
+For the 0.7.0-css-network-preview build use the local Release/default.xex on the build PC, copy it to USB/HDD and launch through Aurora. The existing linked 0.4.0 preview release does not contain this version. Keep the console connected to the Internet and its date/time correct for HTTPS certificates. Old INI files are ignored.
 
 ## Interface and controls
 
@@ -34,7 +36,7 @@ The cursor is an original anti-aliased image icon with hover coloring. It uses t
 
 | Content | Current implementation |
 |---|---|
-| HTML and supported CSS | Native litehtml layout, external stylesheets, style blocks, inline styles, boxes, floats, tables, fonts/colors/borders and DOM links |
+| HTML and supported CSS | Native litehtml layout; external/inline styles, simple responsive-width media rules, constant :root CSS variables, boxes and links; Flex/Grid reduced to readable stacked blocks, not correct modern layout |
 | JPEG, PNG, BMP | Downloaded directly and decoded with stb_image |
 | GIF | First frame only |
 | Page images | Up to eight HTTPS img resources; includes basic data-src lazy-image URLs |
