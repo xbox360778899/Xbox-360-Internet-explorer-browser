@@ -9,7 +9,7 @@
 #include <string>
 #include <algorithm>
 struct BrowserStyleFont{int face,size,decoration;};
-struct BrowserStyleImage{std::string url;uint32_t* pixels;int width,height;BrowserStyleImage():pixels(NULL),width(0),height(0){}};
+struct BrowserStyleImage{std::string url;uint32_t* pixels;int width,height,state;BrowserStyleImage():pixels(NULL),width(0),height(0),state(0){}};
 class BrowserStyleContainer:public litehtml::document_container {
 public:
     BrowserStyleFetch fetch;void* context;std::string base,clicked;
@@ -51,10 +51,10 @@ public:
     virtual void load_image(const char* src,const char* baseurl){
         if(ready || !fetch || images.size()>=12 || findImage(src,baseurl))return;
         std::string url=resolve(src,baseurl);if(url.empty())return;BrowserStyleImage image;image.url=url;images.push_back(image);
-        unsigned char* bytes=NULL;int size=0;char finalURL[WEB_URL];if(fetch(context,url.c_str(),&bytes,&size,finalURL,sizeof(finalURL)) && size<=2*1024*1024){BrowserStyleImage& entry=images.back();entry.pixels=browserDecodeImage(bytes,size,&entry.width,&entry.height);}free(bytes);
+        // Do not block first paint on images. The worker fetches them after the CSS layout is visible.
     }
     virtual void get_image_size(const char* src,const char* baseurl,litehtml::size& size){load_image(src,baseurl);BrowserStyleImage* image=findImage(src,baseurl);if(image&&image->pixels){size.width=image->width;size.height=image->height;}else{size.width=0;size.height=0;}}
-    void paintImage(BrowserStyleImage* image,const litehtml::position& pos){if(!drawing||!image||!image->pixels||pos.width<1||pos.height<1||pos.width>4096||pos.height>4096||pos.y+pos.height<drawing->clip.y||pos.y>=drawing->clip.y+drawing->clip.h)return;std::vector<uint32_t> scaled(pos.width*pos.height);xui_image_t bitmap={image->pixels,image->width,image->height,image->width,XUI_FMT_XRGB};xui_scale_cover(&scaled[0],pos.width,pos.height,&bitmap);xui_image_t out={&scaled[0],pos.width,pos.height,pos.width,XUI_FMT_XRGB};xui_blit(drawing,&out,pos.x,pos.y,0);}
+    void paintImage(BrowserStyleImage* image,const litehtml::position& pos){if(!drawing||!image||!image->pixels||pos.width<1||pos.height<1||pos.width>1280||pos.height>1440||pos.width*pos.height>1280*720*2||pos.y+pos.height<drawing->clip.y||pos.y>=drawing->clip.y+drawing->clip.h)return;std::vector<uint32_t> scaled(pos.width*pos.height);xui_image_t bitmap={image->pixels,image->width,image->height,image->width,XUI_FMT_XRGB};xui_scale_cover(&scaled[0],pos.width,pos.height,&bitmap);xui_image_t out={&scaled[0],pos.width,pos.height,pos.width,XUI_FMT_XRGB};xui_blit(drawing,&out,pos.x,pos.y,0);}
     virtual void draw_image(litehtml::uint_ptr,const char* src,const char* baseurl,const litehtml::position& pos){paintImage(findImage(src,baseurl),pos);}
     virtual void draw_background(litehtml::uint_ptr,const char* src,const char* baseurl,const litehtml::position& pos,const litehtml::css_position& bgpos,litehtml::background_repeat repeat,litehtml::background_attachment){
         BrowserStyleImage* image=findImage(src,baseurl);if(!drawing||!image||!image->pixels)return;
@@ -86,14 +86,32 @@ void* browserStyledCreate(const char* html,const char* url,BrowserStyleFetch fet
     if(!html||strlen(html)>512*1024)return NULL;
     BrowserStyleContainer* page=new BrowserStyleContainer(url,fetch,user);page->engineContext.load_master_stylesheet(browserMasterCSS);
     page->engineContext.load_master_stylesheet("script,noscript,template{display:none;}body{font-family:Inter;font-size:18px;color:#111;background:#fff;}a{color:#005a33;cursor:pointer;}");
-    page->document=litehtml::document::createFromString(html,page,&page->engineContext);if(!page->document){delete page;return NULL;}page->document->render(1184);page->ready=true;return page;
+    page->document=litehtml::document::createFromString(html,page,&page->engineContext);if(!page->document){delete page;return NULL;}page->document->render(1280);page->ready=true;return page;
 }
 void browserStyledDestroy(void* handle){delete (BrowserStyleContainer*)handle;}
 int browserStyledHeight(void* handle){BrowserStyleContainer* p=(BrowserStyleContainer*)handle;return p&&p->document?p->document->height():0;}
 int browserStyledCSSCount(void* handle){return handle?((BrowserStyleContainer*)handle)->cssCount:0;}
+bool browserStyledNextImage(void* handle,char* url,int capacity){
+    BrowserStyleContainer* p=(BrowserStyleContainer*)handle;if(!p)return false;
+    for(size_t i=0;i<p->images.size();++i)if(p->images[i].state==0){
+        if(p->images[i].url.size()>=(size_t)capacity)return false;
+        strcpy_s(url,capacity,p->images[i].url.c_str());p->images[i].state=2;return true;
+    }
+    return false;
+}
+void browserStyledCompleteImage(void* handle,const char* url,const unsigned char* data,int bytes){
+    BrowserStyleContainer* p=(BrowserStyleContainer*)handle;if(!p)return;
+    for(size_t i=0;i<p->images.size();++i)if(p->images[i].url==url && p->images[i].state==2){
+        BrowserStyleImage& image=p->images[i];
+        if(data&&bytes>0)image.pixels=browserDecodeImage(data,bytes,&image.width,&image.height);
+        image.state=image.pixels?1:-1;
+        if(p->document)p->document->render(1280);
+        p->dirty=true;return;
+    }
+}
 int browserStyledImageCount(void* handle){BrowserStyleContainer* p=(BrowserStyleContainer*)handle;int n=0;if(p)for(size_t i=0;i<p->images.size();++i)if(p->images[i].pixels)++n;return n;}
 void browserStyledDraw(void* handle,xui_canvas_t* target,int x,int y,int width,int height,int scroll){
-    BrowserStyleContainer* p=(BrowserStyleContainer*)handle;if(!p||width!=1184||height<1||height>720)return;
+    BrowserStyleContainer* p=(BrowserStyleContainer*)handle;if(!p||width!=1280||height<1||height>720)return;
     if(p->dirty||p->lastScroll!=scroll||p->lastHeight!=height){p->cache.assign(width*height,0xffffff);xui_canvas_t canvas;xui_canvas_init(&canvas,&p->cache[0],width,height,width);p->drawing=&canvas;p->clips.clear();litehtml::position clip;clip.x=0;clip.y=0;clip.width=width;clip.height=height;p->document->draw((litehtml::uint_ptr)0,0,-scroll,&clip);p->drawing=NULL;p->dirty=false;p->lastScroll=scroll;p->lastHeight=height;}
     xui_image_t image={&p->cache[0],width,height,width,XUI_FMT_XRGB};xui_blit(target,&image,x,y,0);
 }

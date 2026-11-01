@@ -21,7 +21,7 @@ struct HubTLSRequest {
  SOCKET socket;
  DWORD started,error,length,received,chunkLeft;
  bool lengthKnown,chunked,finished,chunkCRLF;
- char finalURL[8192],contentType[128];
+ char finalURL[8192],contentType[128],cacheControl[160];
 };
 static bool hubNetSuffix(const char* host,const char* suffix){
  size_t a=strlen(host),b=strlen(suffix);
@@ -213,6 +213,9 @@ static bool hubNetHeaders(HubTLSRequest* r,DWORD* status,char* location,size_t l
    if(_stricmp(colon,"identity"))return false;
   }else if(!_stricmp(line,"Content-Type")){
    strncpy_s(r->contentType,sizeof(r->contentType),colon,_TRUNCATE);
+  }else if(!_stricmp(line,"Cache-Control") || !_stricmp(line,"Pragma") || !_stricmp(line,"Set-Cookie")){
+   if(!_stricmp(line,"Set-Cookie"))strcpy_s(r->cacheControl,"private, no-store");
+   else if(strlen(r->cacheControl)+strlen(colon)+2<sizeof(r->cacheControl)){strcat_s(r->cacheControl,",");strcat_s(r->cacheControl,colon);}
   }else if(!_stricmp(line,"Location")){
    if(location[0]||strlen(colon)>=locSize)return false;strcpy_s(location,locSize,colon);
   }

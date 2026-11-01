@@ -15,7 +15,7 @@ static void save(const char* path) {
 #include "styled_checks.h"
 static void checks() {
     char url[WEB_URL];
-    assert(webSearchOrURL("Xbox 360",url,sizeof(url)) && !strcmp(url,"https://www.bing.com/search?q=Xbox%20360"));
+    assert(webSearchOrURL("Xbox 360",url,sizeof(url)) && !strcmp(url,"https://www.google.com/search?q=Xbox%20360"));
     assert(webSearchOrURL("xbox 360",url,sizeof(url),true) && webPrefix(url,"https://www.google.com/search?q="));
     assert(webResolveURL("https://example.com/a/b","/test?q=1",url,sizeof(url)) && !strcmp(url,"https://example.com/test?q=1"));
     assert(webResolveURL("https://example.com/a/b","next",url,sizeof(url)) && !strcmp(url,"https://example.com/a/next"));
@@ -38,13 +38,21 @@ static void checks() {
     for(int i=0;i<document.count;++i)if(document.lines[i].link>=0){view.cursorX=100;view.cursorY=lgPageTop(&view)+2+document.lines[i].y;assert(nativeHitLink(&view)==0);}
     assert(nativeHomeHit(350,190)==0 && nativeHomeHit(180,350)==1);
     assert(lgChromeVisible(1000,0,false,false,false));assert(!lgChromeVisible(4500,0,false,false,false));assert(lgChromeVisible(9000,0,true,false,false));
-    assert(lgMenuHit(940,136)==0 && lgMenuHit(1000,405)==5 && lgMenuHit(500,200)==-1);
+    assert(lgTabsHit(820,150)==0 && lgTabsHit(820,211)==1);assert(lgMenuHit(940,136)==0 && lgMenuHit(1000,405)==5 && lgMenuHit(500,200)==-1);
     view.home=true;view.menu=true;view.menuSelected=4;nativeRender(&canvas,&view);save("obj/lg-menu.ppm");
     view.menu=false;view.chrome=false;nativeRender(&canvas,&view);save("obj/lg-hidden.ppm");
     assert(screen[690*1280+1190]!=0x080d0f); // Preview watermark remains visible with hidden chrome.
     view.video=true;nativeRender(&canvas,&view);assert(screen[0]==0 && screen[690*1280+1190]!=0);view.video=false;
     printf("PASS: toolbar inactivity, menu hit testing, icon rendering and watermark visibility.\n");
     printf("PASS: native URL/search handling, entity decoding, hidden scripts/styles, clickable links and shared UI rendering.\n");
+}
+static void cacheChecks(){
+    WebDownload a={0},b={0};a.bytes=(unsigned char*)malloc(5);assert(a.bytes);memcpy(a.bytes,"TEST",5);
+    a.size=4;a.kind=WEB_DOWNLOAD_HTML;strcpy_s(a.url,"https://example.com/asset.css");strcpy_s(a.type,"text/css");
+    webCacheStore(a.url,&a);
+    assert(webCacheLookup("https://example.com/asset.css",&b,false));assert(b.cacheHit&&b.size==4&&!memcmp(b.bytes,"TEST",4));
+    free(b.bytes);webCacheForget(a.url);free(a.bytes);
+    assert(browserCacheBytes==0);printf("PASS: bounded in-memory web cache with invalidation.\n");
 }
 static void mediaChecks() {
     const char* extensions[]={"png","jpg","gif","bmp"};
@@ -80,6 +88,7 @@ static void networkStyledCheck(){
     WebDownload html={0};char message[192]="";webNetState.cancel=0;
     bool ok=webDownload("https://raw.githubusercontent.com/heltindev/X360Browser/main/tests/fixtures/layout.html",&html,message,sizeof(message));
     void* page=ok?browserStyledCreate((const char*)html.bytes,html.url,webStyledResourceFetch,NULL):NULL;
+    if(page){char assetURL[WEB_URL]="";if(browserStyledNextImage(page,assetURL,sizeof(assetURL))){WebDownload asset={0};char error[192]="";if(webDownload(assetURL,&asset,error,sizeof(error),true))browserStyledCompleteImage(page,assetURL,asset.bytes,(int)asset.size);free(asset.bytes);}}
     printf("NETWORK styled page: fetch=%s engine=%s css=%d images=%d %s\n",ok?"OK":"FAILED",page?"OK":"FAILED",browserStyledCSSCount(page),browserStyledImageCount(page),message);
     if(page){xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);browserStyledDraw(page,&canvas,48,104,1184,550,0);save("obj/css-network.ppm");browserStyledDestroy(page);}free(html.bytes);
 }
@@ -87,6 +96,7 @@ int main(int argc,char**) {
     setvbuf(stdout,NULL,_IONBF,0);
     checks();
     mediaChecks();
+    cacheChecks();
     styledChecks();
     if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();WSACleanup();}
     return 0;

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.0-preview - 2026-11-01
+
+- Full-screen webpage rendering with retracting toolbar and green dimming spinner.
+- Preserve Developed by @heltonleiras on top of pages and video overlays.
+- Implement up to four tabs with independent URLs, history, scroll state and page content.
+- Google as both startup page and default search/Home.
+- Fix CSS resource MIME acceptance; keep legacy litehtml stylesheet support and layout tests.
+- Render CSS before images; progressively load images with oversized-image limits.
+- Add a 6 MiB, 180-second in-memory response cache respecting no-store/private/no-cache directives.
+- Show real response cache bytes and frame time. CPU load and temperature remain N/A.
+- Compile native PowerPC XEX2, run Windows host and HTTPS/CSS fixture tests.
+- Not yet supported: modern JS, full CSS Grid/Flexbox, MP4/H.264, persistent cache, tab closing, reliable CPU% or temperatures, USB mouse.
+- Physical Xbox 360 hardware validation pending.
+
+
+
 ## 0.4.0 - 2026-11-01
 
 - Add native HTML/CSS layout using a port of litehtml v0.3, compatible with VS2010/XDK.

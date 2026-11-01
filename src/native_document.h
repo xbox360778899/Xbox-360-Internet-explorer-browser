@@ -77,7 +77,7 @@ static bool webSearchOrURL(const char* input,char* output,size_t capacity,bool g
     if(strchr(input,'.') && !strchr(input,' ') && !strchr(input,':')) {
         char temp[WEB_URL];if(strlen(input)+9>=sizeof(temp))return false;sprintf(temp,"https://%s",input);return webResolveURL(temp,temp,output,capacity);
     }
-    const char* origin=google?"https://www.google.com/search?q=":"https://www.bing.com/search?q=";
+    const char* origin="https://www.google.com/search?q="; // Google is the only default search provider.
     if(strlen(origin)+1>=capacity)return false;strcpy(output,origin);size_t n=strlen(output);const char* hex="0123456789ABCDEF";
     for(const unsigned char* p=(const unsigned char*)input;*p;++p) {
         if(n+4>=capacity)return false;

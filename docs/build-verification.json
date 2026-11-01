@@ -1,26 +1,26 @@
 {
-  "version": "0.4.0-css-preview",
+  "version": "0.5.0-preview",
   "configuration": "Release | Xbox 360",
   "format": "XEX2",
   "binary": "Release/default.xex",
   "bytes": 10825728,
-  "sha256": "891e8fb4ae520aeaf007365f2901d628064cc263f90c4a355f4c21199e22f74c",
-  "runtime": "Native HTTPS + litehtml HTML/CSS layout + images + XMedia2 WMV/XMV",
-  "css_engine": "litehtml v0.3 port for VS2010/XDK",
-  "css": "External stylesheets, style blocks, inline styles and supported legacy CSS layout",
-  "css_limits": "No JavaScript, modern Flexbox/Grid, complete modern CSS or web-font engine",
-  "image_formats": [
-    "JPEG",
-    "PNG",
-    "BMP",
-    "GIF first frame"
-  ],
-  "video": "Direct WMV/XMV, buffered up to 64 MB; hardware playback not tested",
-  "watermark": "Developed by @heltonleiras; prerelease builds",
-  "toolbar_hide_ms": 4500,
-  "pc_required": false,
-  "browser_ini_required": false,
-  "mouse": "Gamepad-controlled pointer; physical USB mouse not implemented",
-  "physical_console_test": "not performed",
-  "modern_browser_engine": "not implemented"
+  "sha256": "e49087131979d12beeeafcaecc43fcdb13f3188fc4bdb51cdb0ee6cb5ffb63d1",
+  "runtime": "Native Xbox 360 PowerPC XEX: HTTPS + litehtml CSS + images",
+  "google_default": true,
+  "tabs_max": 4,
+  "fullscreen_page": true,
+  "loading_overlay": true,
+  "cache": "6 MiB RAM, 180 second TTL; skip private/no-store/no-cache",
+  "image_loading": "progressive after first HTML/CSS paint",
+  "telemetry": "RAM response-cache bytes and frame time measured; CPU percent/temperature N/A",
+  "host_tests": "native host and HTTPS image/CSS fixtures passed",
+  "physical_console_test": "NOT PERFORMED",
+  "limitations": [
+    "modern JavaScript",
+    "CSS Grid/Flexbox",
+    "MP4/H.264 streaming",
+    "disk cache",
+    "tab closing",
+    "USB mouse"
+  ]
 }

@@ -1,4 +1,8 @@
-# Native Xbox 360 test guide - 0.4.0
+# Native Xbox 360 test guide - 0.5.0-preview
+
+On startup the new preview navigates to Google without a PC. During loading expect a darkened screen and spinner. Click the number beside the address bar to create/switch tabs; verify the original URL, page and scroll are retained. When the toolbar hides the page fills 1280x720. The watermark remains above the page. The dim lower-left statistics contain measured cache usage and frame time, but CPU percentage and temperature intentionally read N/A. Revisit the CSS layout fixture to test cache and progressive image loading. Up to four tabs can be created (closing tabs is not implemented in this preview).
+
+
 
 Copy only default.xex to the console. No PC service or INI is required.
 
