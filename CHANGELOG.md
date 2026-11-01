@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.0-hardware-preview - 2026-11-01
+
+- Respond to unsuccessful physical Xbox 360 test of 0.5: prioritize page loading, responsiveness, CSS and reduced stutter.
+- Start on native shortcut screen; X360HUB, Google, Wikipedia and network test. Text queries still use Google.
+- Show GlobalMemoryStatus physical-memory MB/%; remove CPU% and frame metrics.
+- Use processor affinity for network worker; add frame loop yield; reduce network inactivity timeout.
+- Avoid repeated text/image scaling, hover DOM traversal and per-image reflows.
+- Accept bigger styled HTML/CSS and add basic media-width/flex/grid readable fallback (not full modern CSS).
+- Report CSS fetch failures on-screen for console diagnostics.
+- Host/XEX compilation and HTTPS/CSS/image fixture tests pass. **Physical console validation pending.**
+
+
 ## 0.5.0-preview - 2026-11-01
 
 - Full-screen webpage rendering with retracting toolbar and green dimming spinner.

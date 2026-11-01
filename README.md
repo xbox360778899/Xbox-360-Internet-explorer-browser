@@ -1,22 +1,22 @@
 # X360Browser
 
-## 0.5.0-preview changes
+## 0.6.0-hardware-preview changes
 
-The browser opens Google by default; the small tab number at the top-right opens the tab picker. Create or switch among up to four tabs, each retaining its page, history and scrolling. The page fills the screen when the toolbar automatically hides. During navigation, an animated spinner appears over a dark overlay. The preview watermark is painted over the webpage.
+The native home screen opens first (Google, X360HUB, Wikipedia and connection-test shortcuts). Search queries always go to Google; the small tab number at the top-right opens the tab picker. Create or switch among up to four tabs, each retaining its page, history and scrolling. The page fills the screen when the toolbar automatically hides. During navigation, an animated spinner appears over a dark overlay. The preview watermark is painted over the webpage.
 
 HTML and external/inline CSS are rendered before images, which load progressively. A 6 MiB RAM-only response cache speeds up revisits within 180 seconds; it is wiped when the application exits, and explicitly private/no-store/no-cache responses are not stored. CSS supports common CSS content types. This legacy litehtml engine still lacks complete modern CSS and JavaScript-driven interactivity.
 
-The dim bottom-left statistics display response cache RAM bytes and measured frame duration. CPU utilisation remains N/A; CPU/GPU temperatures are queried read-only from the console SMC and displayed only when within a plausible range. This sensor path is not yet tested on physical hardware. This is not total RAM usage. No PC helper, browser.ini or PowerPC simulator is required: the XEX is compiled natively for the console. This preview has not been tested on physical hardware; the Windows host and HTTPS fixture checks passed.
+The dim bottom-left statistics display the physical RAM usage reported by the Xbox SDK, as MB and percentage of reported physical memory. The RAM indicator uses GlobalMemoryStatus to show SDK-reported physical memory used/available in MB and percent, not response cache size. CPU utilisation and frame-time metrics are hidden. CPU/GPU temperatures are queried read-only from the console SMC and displayed only when within a plausible range. This sensor path is not yet tested on physical hardware. This is system-wide physical RAM pressure, not just memory used by the browser. No PC helper, browser.ini or PowerPC simulator is required: the XEX is compiled natively for the console. The 0.5 preview failed on the physical console according to the owner; this 0.6 revision has passed host and SDK build tests but still requires a new physical test.
 
 
 
-Experimental native browser for Xbox 360 RGH/JTAG. **No PC, browser.ini or relay is required.** Version 0.5.0-preview adds full-screen pages, four switchable tabs, a dark loading animation, progressive images, a bounded RAM cache and Google as the home and default search. All UI text is in English.
+Experimental native browser for Xbox 360 RGH/JTAG. **No PC, browser.ini or relay is required.** Version 0.6.0-hardware-preview adds full-screen pages, four switchable tabs, a dark loading animation, progressive images, a bounded RAM cache and Google as the default search provider, with a native shortcut home screen. All UI text is in English.
 
 ![LG-inspired browser](docs/green-home.png)
 
 ## Install
 
-For the 0.5.0-preview build use the local Release/default.xex on the build PC, copy it to USB/HDD and launch through Aurora. The existing linked 0.4.0 preview release does not contain this version. Keep the console connected to the Internet and its date/time correct for HTTPS certificates. Old INI files are ignored.
+For the 0.6.0-hardware-preview build use the local Release/default.xex on the build PC, copy it to USB/HDD and launch through Aurora. The existing linked 0.4.0 preview release does not contain this version. Keep the console connected to the Internet and its date/time correct for HTTPS certificates. Old INI files are ignored.
 
 ## Interface and controls
 
@@ -24,7 +24,7 @@ The green top bar, green focus outlines, recommended-site tiles and right-side m
 
 - Left stick / D-pad: mouse pointer. A: click.
 - LT/RT or right stick: scroll. B/LB: back. RB: forward.
-- Y/X: address or Google query. START/R3: reload (bypasses the current page cache entry). BACK/Home: Google.
+- Y/X: address or Google query. START/R3: reload (bypasses the current page cache entry). BACK/Home: native shortcuts page.
 - L3: open/close the menu. D-pad up/down and A select an item; B closes it.
 - During video: A pauses/resumes, B stops.
 
@@ -70,6 +70,6 @@ GPL-3.0. See LICENSE, THIRD_PARTY.md and docs/build-verification.json. Independe
 
 ![CSS layout test](docs/css-browser.png)
 
-The fixture at tests/fixtures/layout.html uses an external stylesheet, inline styles, two columns, linked images and clickable DOM links. The same native rendering code is used by the Xbox binary and host checks. CSS resources are limited to eight unique stylesheets, 256 KB per stylesheet and 512 KB total; styled HTML is capped at 512 KB, with a reader fallback above that. Images use a bounded native cache.
+The fixture at tests/fixtures/layout.html uses an external stylesheet, inline styles, two columns, linked images and clickable DOM links. The same native rendering code is used by the Xbox binary and host checks. CSS resources are limited to ten unique stylesheets, 512 KB per stylesheet and 1.5 MB total; styled HTML is capped at 1 MB, with a reader fallback above that. Images use a bounded native cache.
 
 Both supplied files were reviewed in full: [video/GPU review](docs/UPLOADED-CODE-REVIEW.md). They inform video/graphics work, not CSS parsing. This release does not claim new H.264 playback.

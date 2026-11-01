@@ -23,5 +23,9 @@ static void styledChecks(){
     browserStyledDestroy(page);
     page=browserStyledCreate("<html><head><style>body{margin:0;}#probe{position:absolute;left:10px;top:10px;width:80px;height:50px;background:#123456;} .hidden{display:none;}</style></head><body><div id='probe'></div><div class='hidden'>Hidden</div></body></html>","https://example.com/",NULL,NULL);assert(page);
     browserStyledDraw(page,&canvas,0,76,1280,644,0);assert(screen[(76+20)*1280+20]==0x123456);browserStyledDestroy(page);
-    printf("PASS: litehtml external/inline CSS, positioned boxes, colors, linked images, link hit testing and rendered layout.\n");
+    page=browserStyledCreate("<html><head><style>body{margin:0}#probe{height:40px;width:80px;background:#111111}@media screen and (max-width:1400px){#probe{background:#123abc}}@media screen and (max-width:600px){#probe{background:#ffffff}}.row{display:flex}</style></head><body><div id='probe'></div><div class='row'>Readable fallback</div></body></html>","https://example.com/",NULL,NULL);
+    assert(page);browserStyledDraw(page,&canvas,0,76,1280,644,0);
+    assert(screen[(76+10)*1280+10]==0x123abc);
+    browserStyledDestroy(page);
+    printf("PASS: litehtml CSS, legacy media queries and readable flex/grid fallback.\n");
 }

@@ -1,26 +1,17 @@
 {
-  "version": "0.5.0-preview",
+  "version": "0.6.0-hardware-preview",
   "configuration": "Release | Xbox 360",
   "format": "XEX2",
   "binary": "Release/default.xex",
   "bytes": 10825728,
-  "sha256": "080467cc663b2d00c1e307d364c1a7b175775e72890204d47a2cb5f7f89b69cb",
-  "runtime": "Native Xbox 360 PowerPC XEX: HTTPS + litehtml CSS + images",
-  "google_default": true,
-  "tabs_max": 4,
-  "fullscreen_page": true,
-  "loading_overlay": true,
-  "cache": "6 MiB RAM, 180 second TTL; skip private/no-store/no-cache",
-  "image_loading": "progressive after first HTML/CSS paint",
-  "telemetry": "RAM cache bytes and frame time measured; CPU use N/A; SMC CPU/GPU temperatures when valid, untested on console",
-  "host_tests": "native host and HTTPS image/CSS fixtures passed",
-  "physical_console_test": "NOT PERFORMED",
-  "limitations": [
-    "modern JavaScript",
-    "CSS Grid/Flexbox",
-    "MP4/H.264 streaming",
-    "disk cache",
-    "tab closing",
-    "USB mouse"
-  ]
+  "sha256": "3d33acca3e9a34ac789cefffe487d0239532a7cfe92b1c51498ddedc1cc21dee",
+  "physical_console_test": "not performed for 0.6; 0.5 reported failing by owner",
+  "home": "native shortcuts: Google, X360HUB, Wikipedia, example.com",
+  "search": "Google default for all text queries",
+  "ram": "GlobalMemoryStatus physical RAM in MB/%; SDK reported total may be <512 MiB",
+  "performance": "network worker on hardware thread 2, frame-loop yielding, CSS/image/hover caches and bounded reflow",
+  "css": "litehtml 0.3: external+inline CSS, basic media-width fallback and flex/grid block fallback, not modern browser CSS",
+  "javascript": "not implemented",
+  "mp4_h264": "not implemented",
+  "host_tests": "native host, layout/media fixture and HTTPS search/image/CSS checks passed"
 }

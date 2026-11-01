@@ -1,4 +1,4 @@
-// X360Browser 0.4.0: native HTML/CSS, media and green browser chrome. GPL-3.0.
+// X360Browser 0.6.0-hardware-preview: native HTML/CSS, media and green browser chrome. GPL-3.0.
 #include <xtl.h>
 #include <winsockx.h>
 #include <d3d9.h>
@@ -30,8 +30,19 @@ static bool home=true,loading=false,toolbarFocus=false,pending=false;
 struct BrowserTab {WebDocument* doc;char url[WEB_URL];char history[32][WEB_URL];int historyIndex,historyCount,scroll;bool home,loading;};
 static BrowserTab tabs[4];static int tabCount=1,activeTab=0,tabSelection=0;static bool tabPanelOpen=false;
 extern "C" void __stdcall HalSendSMCMessage(void* input,void* output);
-static DWORD frameCPUms=0,tempPoll=0;static int cpuTemp10=-1,gpuTemp10=-1;
-static char perfText[128]="RAM(cache): 0KB | CPU: N/A | Frame: -- | Temp: N/A";
+static DWORD tempPoll=0,memoryPoll=0,ramUsedMB=0,ramTotalMB=0,ramPercent=0;static int cpuTemp10=-1,gpuTemp10=-1;
+static char perfText[128]="RAM: measuring...";
+static void pollRealMemory(){
+    DWORD now=GetTickCount();if(now-memoryPoll<1250)return;memoryPoll=now;
+    MEMORYSTATUS state;ZeroMemory(&state,sizeof(state));state.dwLength=sizeof(state);
+    GlobalMemoryStatus(&state);
+    // Show actual physical memory pressure, never a cache-derived estimate.
+    if(state.dwTotalPhys>=64u*1024u*1024u && state.dwTotalPhys<=512u*1024u*1024u && state.dwAvailPhys<=state.dwTotalPhys){
+        ramTotalMB=state.dwTotalPhys/(1024u*1024u);
+        ramUsedMB=(state.dwTotalPhys-state.dwAvailPhys)/(1024u*1024u);
+        ramPercent=(DWORD)(((ULONGLONG)(state.dwTotalPhys-state.dwAvailPhys)*100u)/state.dwTotalPhys);
+    }else ramTotalMB=0;
+}
 static void pollConsoleTemperature(){
     DWORD tick=GetTickCount();if(tick-tempPoll<2000)return;tempPoll=tick;
     BYTE request[16]={0},response[16]={0};request[0]=7;
@@ -130,8 +141,8 @@ static void createTab(){
     if(tabCount>=4){tabPanelOpen=true;return;}
     BrowserTab* t=&tabs[tabCount];memset(t,0,sizeof(*t));
     t->doc=(WebDocument*)calloc(1,sizeof(WebDocument));if(!t->doc)return;
-    strcpy_s(t->url,"https://www.google.com/");strcpy_s(t->history[0],"https://www.google.com/");
-    t->historyCount=1;t->home=false;t->loading=true;int index=tabCount++;
+    strcpy_s(t->url,"browser:home");strcpy_s(t->history[0],"browser:home");
+    t->historyCount=1;t->home=true;t->loading=false;int index=tabCount++;
     activateTab(index);
 }
 static void goHistory(int delta) {
@@ -174,7 +185,7 @@ static DWORD WINAPI nativeWorker(void*) {
                 webParseHTML(spare,(const char*)download.bytes,download.url);spare->truncated=spare->truncated||download.truncated;
                 EnterCriticalSection(&guard);if(requestGeneration==generation)strcpy_s(statusText,"Loading website styles and images...");LeaveCriticalSection(&guard);
                 spare->styled=browserStyledCreate((const char*)download.bytes,download.url,webStyledResourceFetch,NULL);
-                if(spare->styled){spare->height=browserStyledHeight(spare->styled);sprintf_s(message,sizeof(message),"Page ready. Stylesheets: %d",browserStyledCSSCount(spare->styled));}
+                if(spare->styled){spare->height=browserStyledHeight(spare->styled);sprintf_s(message,sizeof(message),"Page CSS: %d loaded, %d failed",browserStyledCSSCount(spare->styled),browserStyledCSSFailed(spare->styled));}
                 else strcpy_s(message,"Using the text reader for this page.");
             }
         }
@@ -195,7 +206,7 @@ static DWORD WINAPI nativeWorker(void*) {
             if(requestGeneration==generation&&published==shownDoc){
                 browserStyledCompleteImage(published->styled,asset,ok?picture.bytes:NULL,ok?(int)picture.size:0);
                 published->height=browserStyledHeight(published->styled);
-                sprintf_s(statusText,sizeof(statusText),"Page ready  |  CSS %d  |  Images %d",browserStyledCSSCount(published->styled),browserStyledImageCount(published->styled));
+                sprintf_s(statusText,sizeof(statusText),"CSS %d loaded / %d failed | Images %d",browserStyledCSSCount(published->styled),browserStyledCSSFailed(published->styled),browserStyledImageCount(published->styled));
             }
             LeaveCriticalSection(&guard);free(picture.bytes);
         }
@@ -222,9 +233,9 @@ static void openKeyboard(bool google=false) {
 }
 static void toolbarAction(int selected) {
     if(selected==0)goHistory(-1);else if(selected==1)goHistory(1);else if(selected==2){webCacheForget(currentURL);navigate(currentURL,false);}
-    else if(selected==3||selected==6)navigate("https://www.google.com/");else if(selected==5){menuOpen=!menuOpen;menuSelection=0;}else openKeyboard();
+    else if(selected==3||selected==6)navigate("browser:home");else if(selected==5){menuOpen=!menuOpen;menuSelection=0;}else openKeyboard();
 }
-static void menuAction(int selected){menuOpen=false;if(selected==0)navigate("https://www.google.com/");else if(selected==1)goHistory(-1);else if(selected==2)goHistory(1);else if(selected==3){webCacheForget(currentURL);navigate(currentURL,false);}else if(selected==4)navigate("browser:help");}
+static void menuAction(int selected){menuOpen=false;if(selected==0)navigate("browser:home");else if(selected==1)goHistory(-1);else if(selected==2)goHistory(1);else if(selected==3){webCacheForget(currentURL);navigate(currentURL,false);}else if(selected==4)navigate("browser:help");}
 static void click() {
     if(tabPanelOpen){int hit=lgTabsHit((int)mouseX,(int)mouseY);if(hit==0)createTab();else if(hit>0&&hit<=tabCount)activateTab(hit-1);else tabPanelOpen=false;return;}
     if(menuOpen){int item=lgMenuHit((int)mouseX,(int)mouseY);if(item>=0)menuAction(item);else menuOpen=false;return;}
@@ -237,7 +248,7 @@ static void click() {
     }
     if(home) {
         int hit=nativeHomeHit((int)mouseX,(int)mouseY);
-        const char* urls[]={"https://www.google.com/","https://www.google.com/","https://en.wikipedia.org/wiki/Main_Page","https://x360hub.vercel.app/"};
+        const char* urls[]={"https://www.google.com/","https://x360hub.vercel.app/","https://en.wikipedia.org/wiki/Main_Page","https://example.com/"};
         if(hit==0)openKeyboard();else if(hit>=1 && hit<=4)navigate(urls[hit-1]);else if(hit==5)navigate("browser:help");
     } else {
         EnterCriticalSection(&guard);
@@ -295,7 +306,7 @@ static void input() {
     if(mouseX<10)mouseX=10;if(mouseX>1260)mouseX=1260;if(mouseY<10)mouseY=10;if(mouseY>696)mouseY=696;
     if(pressed&XINPUT_GAMEPAD_Y)openKeyboard();
     if(pressed&XINPUT_GAMEPAD_X)openKeyboard(true);
-    if(pressed&XINPUT_GAMEPAD_BACK)navigate("https://www.google.com/");
+    if(pressed&XINPUT_GAMEPAD_BACK)navigate("browser:home");
     if(pressed&XINPUT_GAMEPAD_LEFT_SHOULDER)goHistory(-1);
     if(pressed&XINPUT_GAMEPAD_RIGHT_SHOULDER)goHistory(1);
     if(pressed&XINPUT_GAMEPAD_RIGHT_THUMB || pressed&XINPUT_GAMEPAD_START){webCacheForget(currentURL);navigate(currentURL,false);}
@@ -308,7 +319,7 @@ static void input() {
     LeaveCriticalSection(&guard);
 }
 static void draw() {
-    DWORD frameStart=GetTickCount();pollConsoleTemperature();
+    pollRealMemory();pollConsoleTemperature();
     unsigned char* incomingMovie=NULL;DWORD incomingSize=0;
     EnterCriticalSection(&guard);if(readyMovieBytes){incomingMovie=readyMovieBytes;incomingSize=readyMovieSize;readyMovieBytes=NULL;readyMovieSize=0;}LeaveCriticalSection(&guard);
     if(incomingMovie) {
@@ -321,8 +332,10 @@ static void draw() {
     if(movie){device->Clear(0,NULL,D3DCLEAR_TARGET,0xff000000,1,0);HRESULT hr=movie->RenderNextFrame(0,NULL);if(FAILED(hr)||hr==XMEDIA_W_EOF){stopMovie();EnterCriticalSection(&guard);strcpy_s(statusText,"Video finished or stopped. Press BACK for Home.");LeaveCriticalSection(&guard);}}
     EnterCriticalSection(&guard);
     chromeVisible=lgChromeVisible(GetTickCount(),lastInteraction,menuOpen||tabPanelOpen,keyboardActive,loading);
-    if(cpuTemp10>=0 && gpuTemp10>=0)sprintf_s(perfText,sizeof(perfText),"RAM(cache): %luKB | CPU: N/A | Frame: %lums | CPU %d.%dC GPU %d.%dC",browserCacheBytes/1024,frameCPUms,cpuTemp10/10,cpuTemp10%10,gpuTemp10/10,gpuTemp10%10);
-    else sprintf_s(perfText,sizeof(perfText),"RAM(cache): %luKB | CPU: N/A | Frame: %lums | Temp: N/A",browserCacheBytes/1024,frameCPUms);
+    if(ramTotalMB){
+        if(cpuTemp10>=0 && gpuTemp10>=0)sprintf_s(perfText,sizeof(perfText),"RAM %lu/%lu MB (%lu%%)  |  %dC CPU / %dC GPU",ramUsedMB,ramTotalMB,ramPercent,cpuTemp10/10,gpuTemp10/10);
+        else sprintf_s(perfText,sizeof(perfText),"RAM %lu/%lu MB (%lu%%)",ramUsedMB,ramTotalMB,ramPercent);
+    }else strcpy_s(perfText,"RAM: unavailable");
     NativeView view=makeView();
     nativeRender(&canvas,&view);LeaveCriticalSection(&guard);
     // Do not overwrite the linear UI texture while the GPU samples its prior frame.
@@ -334,7 +347,7 @@ static void draw() {
     device->SetVertexShader(vs);device->SetPixelShader(ps);device->SetVertexDeclaration(declaration);device->SetTexture(0,texture);
     device->SetRenderState(D3DRS_VIEWPORTENABLE,TRUE);D3DVIEWPORT9 viewport={0,0,W,H,0,1};device->SetViewport(&viewport);
     device->SetRenderState(D3DRS_ZENABLE,FALSE);device->SetRenderState(D3DRS_CULLMODE,D3DCULL_NONE);device->SetRenderState(D3DRS_ALPHABLENDENABLE,TRUE);device->SetRenderState(D3DRS_SRCBLEND,D3DBLEND_SRCALPHA);device->SetRenderState(D3DRS_DESTBLEND,D3DBLEND_INVSRCALPHA);
-    device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP,2,vertices,sizeof(Vertex));device->Present(NULL,NULL,NULL,NULL);frameCPUms=GetTickCount()-frameStart;
+    device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP,2,vertices,sizeof(Vertex));device->Present(NULL,NULL,NULL,NULL);
 }
 void __cdecl main() {
     lastInteraction=GetTickCount();
@@ -345,6 +358,10 @@ void __cdecl main() {
     params.cfgSockDefaultRecvBufsizeInK=64;params.cfgSockDefaultSendBufsizeInK=32;
     int networkResult=XNetStartup(&params);WSADATA data;int socketResult=networkResult?networkResult:WSAStartup(MAKEWORD(2,2),&data);
     if(networkResult || socketResult)sprintf_s(statusText,sizeof(statusText),"Xbox network startup failed (%d / %d).",networkResult,socketResult);
-    else {HANDLE worker=CreateThread(NULL,512*1024,nativeWorker,NULL,0,NULL);if(!worker)strcpy_s(statusText,"Could not start the direct Internet connection.");else navigate("https://www.google.com/");}
-    for(;;){input();draw();Sleep(1);}
+    else {
+        HANDLE worker=CreateThread(NULL,512*1024,nativeWorker,NULL,0,NULL);
+        if(!worker)strcpy_s(statusText,"Could not start the direct Internet connection.");
+        else {XSetThreadProcessor(worker,2);CloseHandle(worker);}
+    }
+    for(;;){input();draw();Sleep(16);} // Yield CPU to network/TLS worker instead of busy-spinning.
 }

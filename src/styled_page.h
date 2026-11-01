@@ -8,6 +8,7 @@ void browserStyledDraw(void* page,xui_canvas_t* target,int x,int y,int width,int
 bool browserStyledHover(void* page,int x,int y);
 bool browserStyledClick(void* page,int x,int y,char* url,int capacity);
 int browserStyledCSSCount(void* page);
+int browserStyledCSSFailed(void* page);
 int browserStyledImageCount(void* page);
 bool browserStyledNextImage(void* page,char* url,int capacity);
 void browserStyledCompleteImage(void* page,const char* url,const unsigned char* data,int size);

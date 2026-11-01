@@ -78,6 +78,6 @@ static bool webDownload(const char* url,WebDownload* result,char* message,size_t
 static bool webStyledResourceFetch(void*,const char* url,unsigned char** bytes,int* size,char* finalURL,int capacity) {
     if(webNetState.cancel)return false;WebDownload download={0};char message[192];
     if(!webDownload(url,&download,message,sizeof(message),false,true))return false;
-    if(download.kind!=WEB_DOWNLOAD_HTML||download.size>256*1024||(!webPrefix(download.type,"text/css")&&!webPrefix(download.type,"text/plain")&&!webPrefix(download.type,"application/css")&&!webPrefix(download.type,"application/x-css")&&!webPrefix(download.type,"application/octet-stream"))){free(download.bytes);return false;}
+    if(download.kind!=WEB_DOWNLOAD_HTML||download.size>512*1024||(!webPrefix(download.type,"text/css")&&!webPrefix(download.type,"text/plain")&&!webPrefix(download.type,"application/css")&&!webPrefix(download.type,"application/x-css")&&!webPrefix(download.type,"application/octet-stream"))){free(download.bytes);return false;}
     *bytes=download.bytes;*size=(int)download.size;strncpy_s(finalURL,capacity,download.url,_TRUNCATE);return true;
 }

@@ -1,15 +1,15 @@
-# Native Xbox 360 test guide - 0.5.0-preview
+# Native Xbox 360 test guide - 0.6.0-hardware-preview
 
-On startup the new preview navigates to Google without a PC. During loading expect a darkened screen and spinner. Click the number beside the address bar to create/switch tabs; verify the original URL, page and scroll are retained. When the toolbar hides the page fills 1280x720. The watermark remains above the page. The dim lower-left statistics contain measured cache usage and frame time, but CPU utilisation remains N/A; CPU/GPU temperatures should appear after the SMC query when valid, otherwise N/A. Revisit the CSS layout fixture to test cache and progressive image loading. Up to four tabs can be created (closing tabs is not implemented in this preview).
+On startup the preview opens its local browser:home with Google, X360HUB, Wikipedia, and Test website buttons, without a PC. During loading expect a darkened screen and spinner. Click the number beside the address bar to create/switch tabs; verify the original URL, page and scroll are retained. When the toolbar hides the page fills 1280x720. The watermark remains above the page. The dim lower-left indicator reports SDK physical RAM in MB and percentage, with no frame or CPU utilization values; CPU/GPU temperatures should appear after the SMC query when valid, otherwise N/A. Revisit the CSS layout fixture to test cache and progressive image loading. Up to four tabs can be created (closing tabs is not implemented in this preview).
 
 
 
 Copy only default.xex to the console. No PC service or INI is required.
 
-1. Start the browser; it should open Google automatically with the PC bridge stopped.
+1. Start the browser; it should open its local home screen with the X360HUB shortcut while the PC bridge is stopped.
 2. Move the pointer with the left stick and click the address field with A.
 3. Enter https://example.com/ and check that readable text appears.
-4. Press Y or X for an HTTPS address or Google query; Home/BACK returns to Google.
+4. Press Y/X, type a regular text query and confirm the URL begins with https://www.google.com/search?q=. Home/BACK returns to the local shortcuts screen.
 5. Click a link with A. Check B/LB back, RB forward and trigger scrolling.
 6. Wait 4.5 seconds without input: toolbar and pointer should hide, while the watermark stays visible. Move the stick to reveal them.
 7. Open the three-dot menu, or press L3 and use D-pad up/down plus A. B closes it.

@@ -19,7 +19,7 @@ struct HubTLSRequest {
  br_sslio_context io;
  unsigned char buffer[BR_SSL_BUFSIZE_BIDI];
  SOCKET socket;
- DWORD started,error,length,received,chunkLeft;
+ DWORD started,error,length,received,chunkLeft,maxIdleMs;
  bool lengthKnown,chunked,finished,chunkCRLF;
  char finalURL[8192],contentType[128],cacheControl[160];
 };
@@ -45,7 +45,7 @@ static bool hubNetURL(const char* url,char* host,size_t hs,char* path,size_t ps)
 static DWORD hubSocketReason(DWORD err){return err & 0xFFFFu;}
 static bool hubNetActive(HubTLSRequest* r){
  if(webNetState.cancel){r->error=ERROR_CANCELLED;return false;}
- if(GetTickCount()-r->started>=30000){r->error=ERROR_TIMEOUT;return false;}
+ if(GetTickCount()-r->started>=(r->maxIdleMs?r->maxIdleMs:18000)){r->error=ERROR_TIMEOUT;return false;}
  return true;
 }
 static bool hubNetWaitSocket(HubTLSRequest* r,bool writing){
@@ -230,7 +230,7 @@ static HubTLSRequest* hubNetOpen(const char* url,DWORD* status){
   if(!hubNetURL(current,host,sizeof(host),path,sizeof(path))){SetLastError(ERROR_ACCESS_DENIED);return NULL;}
   HubTLSRequest* r=(HubTLSRequest*)calloc(1,sizeof(HubTLSRequest));
   if(!r){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return NULL;}
-  r->socket=INVALID_SOCKET;location[0]=0;
+  r->socket=INVALID_SOCKET;r->maxIdleMs=10000;location[0]=0;
   bool ok=hubNetConnect(r,host);
   if(ok){
    char request[8704];sprintf_s(request,sizeof(request),"GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: X360Browser/0.2.0 (Xbox 360; NativeReader)\r\nAccept: text/html,application/xhtml+xml,text/plain;q=0.8\r\nAccept-Encoding: identity\r\nAccept-Language: en-US,en;q=0.8\r\nConnection: close\r\n\r\n",path,host);

@@ -12,7 +12,7 @@ static int lgPageTop(const NativeView* view){return view->chrome?76:0;}
 static int nativeHitLink(const NativeView* view) {
     if(!view->doc || view->home || view->cursorX<0 || view->cursorX>=1280 || view->cursorY<lgPageTop(view) || view->cursorY>=720)return -1;
     int y=view->cursorY-lgPageTop(view)+view->scroll;
-    if(view->doc->styled)return browserStyledHover(view->doc->styled,view->cursorX-48,y)?0:-1;
+    if(view->doc->styled)return browserStyledHover(view->doc->styled,view->cursorX,y)?0:-1;
     for(int i=0;i<view->doc->count;++i){const WebLine* row=&view->doc->lines[i];int width=row->kind==WEB_TEXT_ROW?xui_text_width(row->font,row->text,0):1100;if(row->link>=0 && y>=row->y && y<row->y+row->height && view->cursorX<72+width)return row->link;}
     return -1;
 }
@@ -72,8 +72,8 @@ static void nativeRender(xui_canvas_t* c,const NativeView* view) {
         browserText(c,XUI_F_ROW,80,108,"X360Browser",0xeff4f4,700);
         xui_round_rect(c,80,166,1120,58,5,0xf1faf3,255);browserText(c,XUI_F_BODY,106,185,"Search the web",0x526164,990);
         xui_mask(c,&shell_search,1148,177,0x365c43,255);
-        browserText(c,XUI_F_LABEL,80,270,"Recommended Sites",0xb7c2c4,1080);
-        const char* names[]={"Google","Search","Wikipedia","X360HUB"};const char* initials[]={"G","G","W","X"};const uint32_t colors[]={0x78dca4,0x4bbd87,0xb6e8cb,0x62be8b};
+        browserText(c,XUI_F_LABEL,80,270,"Quick access",0xb7c2c4,1080);
+        const char* names[]={"Google","X360HUB","Wikipedia","Test website"};const char* initials[]={"G","X","W","T"};const uint32_t colors[]={0x78dca4,0x4bbd87,0xb6e8cb,0x62be8b};
         for(int i=0;i<4;++i){int x=80+i*284;bool hover=nativeHomeHit(view->cursorX,view->cursorY)==i+1;xui_fill(c,x,306,268,128,0x1a3e2d);if(hover)xui_round_frame(c,x-3,303,274,134,3,3,0x63e19c);xui_circle(c,x+134,351,26,colors[i],255);browserCentered(c,XUI_F_ROW,x+102,324,64,54,initials[i],0x111a1d);browserCentered(c,XUI_F_LABEL,x,394,268,28,names[i],0xe6eeee);}
     } else if(view->doc) {
         int top=lgPageTop(view);xui_rect_t clip={0,top,1280,720-top};xui_set_clip(c,clip);int hover=nativeHitLink(view);
@@ -86,6 +86,10 @@ static void nativeRender(xui_canvas_t* c,const NativeView* view) {
         xui_clip_all(c);
     }
     // A full-screen dimmer signals navigation while keeping the prior page visible.
+    if(!view->home && view->doc && view->doc->styled && browserStyledCSSFailed(view->doc->styled)>0){
+        char diagnostic[120];sprintf_s(diagnostic,sizeof(diagnostic),"CSS: %d loaded, %d failed - some layouts may differ",browserStyledCSSCount(view->doc->styled),browserStyledCSSFailed(view->doc->styled));
+        xui_round_rect(c,22,80,720,31,4,0x48361e,235);browserText(c,XUI_F_LABEL,32,86,diagnostic,0xffe6bc,696);
+    }
     if(view->chrome)lgToolbar(c,view);
     if(view->menu)lgMenu(c,view);if(view->tabsOpen)lgTabsPanel(c,view);if(view->loading)lgLoadingOverlay(c);lgTelemetry(c,view);lgWatermark(c);
     if(view->chrome)nativePointer(c,view->cursorX,view->cursorY,view->home?nativeHomeHit(view->cursorX,view->cursorY)>=0:nativeHitLink(view)>=0);
