@@ -1,7 +1,9 @@
 PASS: toolbar inactivity, menu hit testing, icon rendering and watermark visibility.
 PASS: native URL/search handling, entity decoding, hidden scripts/styles, clickable links and shared UI rendering.
 PASS: JPEG/PNG/GIF/BMP decoding, malformed image rejection, media URL parsing and page layout.
+PASS: litehtml external/inline CSS, positioned boxes, colors, linked images, link hit testing and rendered layout.
 NETWORK example: HTTP=200 bytes=577 read=OK title=Example Domain links=0
-NETWORK bing: HTTP=200 bytes=99682 read=OK title=Xbox 360 - Search links=37
-NETWORK google: HTTP=200 bytes=92848 read=OK title=Google Search links=3
+NETWORK bing: HTTP=200 bytes=97692 read=OK title=Xbox 360 - Search links=34
+NETWORK google: HTTP=200 bytes=92675 read=OK title=Google Search links=3
 NETWORK image: fetch=OK decoded=OK size=320x180 bytes=610 
+NETWORK styled page: fetch=OK engine=OK css=1 images=1 
