@@ -9,7 +9,7 @@
 - Fix CSS resource MIME acceptance; keep legacy litehtml stylesheet support and layout tests.
 - Render CSS before images; progressively load images with oversized-image limits.
 - Add a 6 MiB, 180-second in-memory response cache respecting no-store/private/no-cache directives.
-- Show real response cache bytes and frame time. CPU load and temperature remain N/A.
+- Show real cache bytes and frame time; query CPU/GPU temperatures read-only from SMC with range checks (hardware test pending). CPU load remains N/A.
 - Compile native PowerPC XEX2, run Windows host and HTTPS/CSS fixture tests.
 - Not yet supported: modern JS, full CSS Grid/Flexbox, MP4/H.264, persistent cache, tab closing, reliable CPU% or temperatures, USB mouse.
 - Physical Xbox 360 hardware validation pending.

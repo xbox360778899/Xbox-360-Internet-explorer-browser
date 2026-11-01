@@ -29,7 +29,19 @@ static int historyIndex=0,historyCount=1,pageScroll=0,toolbarSelection=4;
 static bool home=true,loading=false,toolbarFocus=false,pending=false;
 struct BrowserTab {WebDocument* doc;char url[WEB_URL];char history[32][WEB_URL];int historyIndex,historyCount,scroll;bool home,loading;};
 static BrowserTab tabs[4];static int tabCount=1,activeTab=0,tabSelection=0;static bool tabPanelOpen=false;
-static DWORD frameCPUms=0;static char perfText[128]="RAM(cache): 0KB | CPU: N/A | Frame: -- | Temp: N/A";
+extern "C" void __stdcall HalSendSMCMessage(void* input,void* output);
+static DWORD frameCPUms=0,tempPoll=0;static int cpuTemp10=-1,gpuTemp10=-1;
+static char perfText[128]="RAM(cache): 0KB | CPU: N/A | Frame: -- | Temp: N/A";
+static void pollConsoleTemperature(){
+    DWORD tick=GetTickCount();if(tick-tempPoll<2000)return;tempPoll=tick;
+    BYTE request[16]={0},response[16]={0};request[0]=7;
+    HalSendSMCMessage(request,response);
+    if(response[0]!=7)return;
+    unsigned cpu=(unsigned)response[1]+((unsigned)response[2]<<8);
+    unsigned gpu=(unsigned)response[3]+((unsigned)response[4]<<8);
+    if(cpu>=15*256 && cpu<=110*256)cpuTemp10=(int)((cpu*10+128)/256);
+    if(gpu>=15*256 && gpu<=110*256)gpuTemp10=(int)((gpu*10+128)/256);
+}
 static unsigned generation=0;
 static float mouseX=640,mouseY=325;
 static XOVERLAPPED keyboard;
@@ -296,7 +308,7 @@ static void input() {
     LeaveCriticalSection(&guard);
 }
 static void draw() {
-    DWORD frameStart=GetTickCount();
+    DWORD frameStart=GetTickCount();pollConsoleTemperature();
     unsigned char* incomingMovie=NULL;DWORD incomingSize=0;
     EnterCriticalSection(&guard);if(readyMovieBytes){incomingMovie=readyMovieBytes;incomingSize=readyMovieSize;readyMovieBytes=NULL;readyMovieSize=0;}LeaveCriticalSection(&guard);
     if(incomingMovie) {
@@ -309,7 +321,8 @@ static void draw() {
     if(movie){device->Clear(0,NULL,D3DCLEAR_TARGET,0xff000000,1,0);HRESULT hr=movie->RenderNextFrame(0,NULL);if(FAILED(hr)||hr==XMEDIA_W_EOF){stopMovie();EnterCriticalSection(&guard);strcpy_s(statusText,"Video finished or stopped. Press BACK for Home.");LeaveCriticalSection(&guard);}}
     EnterCriticalSection(&guard);
     chromeVisible=lgChromeVisible(GetTickCount(),lastInteraction,menuOpen||tabPanelOpen,keyboardActive,loading);
-    sprintf_s(perfText,sizeof(perfText),"RAM(cache): %luKB | CPU: N/A | Frame: %lums | Temp: N/A",browserCacheBytes/1024,frameCPUms);
+    if(cpuTemp10>=0 && gpuTemp10>=0)sprintf_s(perfText,sizeof(perfText),"RAM(cache): %luKB | CPU: N/A | Frame: %lums | CPU %d.%dC GPU %d.%dC",browserCacheBytes/1024,frameCPUms,cpuTemp10/10,cpuTemp10%10,gpuTemp10/10,gpuTemp10%10);
+    else sprintf_s(perfText,sizeof(perfText),"RAM(cache): %luKB | CPU: N/A | Frame: %lums | Temp: N/A",browserCacheBytes/1024,frameCPUms);
     NativeView view=makeView();
     nativeRender(&canvas,&view);LeaveCriticalSection(&guard);
     // Do not overwrite the linear UI texture while the GPU samples its prior frame.

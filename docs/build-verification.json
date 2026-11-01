@@ -4,7 +4,7 @@
   "format": "XEX2",
   "binary": "Release/default.xex",
   "bytes": 10825728,
-  "sha256": "e49087131979d12beeeafcaecc43fcdb13f3188fc4bdb51cdb0ee6cb5ffb63d1",
+  "sha256": "080467cc663b2d00c1e307d364c1a7b175775e72890204d47a2cb5f7f89b69cb",
   "runtime": "Native Xbox 360 PowerPC XEX: HTTPS + litehtml CSS + images",
   "google_default": true,
   "tabs_max": 4,
@@ -12,7 +12,7 @@
   "loading_overlay": true,
   "cache": "6 MiB RAM, 180 second TTL; skip private/no-store/no-cache",
   "image_loading": "progressive after first HTML/CSS paint",
-  "telemetry": "RAM response-cache bytes and frame time measured; CPU percent/temperature N/A",
+  "telemetry": "RAM cache bytes and frame time measured; CPU use N/A; SMC CPU/GPU temperatures when valid, untested on console",
   "host_tests": "native host and HTTPS image/CSS fixtures passed",
   "physical_console_test": "NOT PERFORMED",
   "limitations": [

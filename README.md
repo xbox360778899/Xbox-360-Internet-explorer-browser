@@ -6,7 +6,7 @@ The browser opens Google by default; the small tab number at the top-right opens
 
 HTML and external/inline CSS are rendered before images, which load progressively. A 6 MiB RAM-only response cache speeds up revisits within 180 seconds; it is wiped when the application exits, and explicitly private/no-store/no-cache responses are not stored. CSS supports common CSS content types. This legacy litehtml engine still lacks complete modern CSS and JavaScript-driven interactivity.
 
-The dim bottom-left statistics display response cache RAM bytes and measured frame duration. Actual CPU utilisation and Celsius temperature are shown as N/A until a verified Xbox 360 API is implemented. This is not total RAM usage. No PC helper, browser.ini or PowerPC simulator is required: the XEX is compiled natively for the console. This preview has not been tested on physical hardware; the Windows host and HTTPS fixture checks passed.
+The dim bottom-left statistics display response cache RAM bytes and measured frame duration. CPU utilisation remains N/A; CPU/GPU temperatures are queried read-only from the console SMC and displayed only when within a plausible range. This sensor path is not yet tested on physical hardware. This is not total RAM usage. No PC helper, browser.ini or PowerPC simulator is required: the XEX is compiled natively for the console. This preview has not been tested on physical hardware; the Windows host and HTTPS fixture checks passed.
 
 
 
