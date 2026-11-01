@@ -1,0 +1,8 @@
+{
+  "configuration": "Release | Xbox 360",
+  "format": "XEX2",
+  "binary": "Release/default.xex",
+  "bytes": 4861952,
+  "sha256": "30dee67991d85e0c290523e5f22ef6e2ecb7ec27383570bf23a5a80706088ec1",
+  "physical_console_test": "not performed"
+}

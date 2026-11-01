@@ -1,0 +1,25 @@
+{
+  "console_hardware_test": "not performed",
+  "browsers": [
+    {
+      "browser": "msedge",
+      "version": "156.0.4314.58",
+      "input": "passed",
+      "pixel_order": "passed",
+      "scroll": "passed",
+      "history": "passed",
+      "https": "passed",
+      "google_navigation": "CAPTCHA shown"
+    },
+    {
+      "browser": "chrome",
+      "version": "156.0.8078.79",
+      "input": "passed",
+      "pixel_order": "passed",
+      "scroll": "passed",
+      "history": "passed",
+      "https": "passed",
+      "google_navigation": "CAPTCHA shown"
+    }
+  ]
+}
