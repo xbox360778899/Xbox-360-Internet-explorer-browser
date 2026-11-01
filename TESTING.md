@@ -16,6 +16,8 @@ Press Y and enter `Xbox 360 homebrew`. Confirm the keyboard. Verify Google loads
 
 ## Report a problem
 
+For 0.1.1, check whether the screen says **INI LOADED**. If so, settings were read: report the TCP or HTTP status instead of moving the INI. START retries without restarting the XEX. If the PC bridge responds on the PC but the Xbox cannot reach it, run `allow-xbox-firewall.cmd` as Administrator; its default Xbox address is `192.168.0.169`.
+
 Include the on-screen status message, Edge/Chrome selection, whether the home page appears, whether the pointer moves, and a photo if the console screen is blank. Never post your `browser.ini` token.
 
 | Message | Check |
@@ -24,6 +26,7 @@ Include the on-screen status message, Edge/Chrome selection, whether the home pa
 | Bridge HTTP 401 | Copy the same generated browser.ini to the Xbox |
 | Bridge HTTP 502 | Website timed out, unsupported navigation, or browser process stopped |
 | Incomplete page frame | Ethernet connection and PC bridge status |
-| browser.ini is missing | Generate settings, then copy beside default.xex and restart |
+| Settings file not found | Keep browser.ini beside default.xex; press START to reload |
+| Missing/invalid field | Correct the named host/port/token field; press START to reload |
 
 Physical Xbox 360 testing has not been performed during development. This is a test build, not a confirmed working hardware release.

@@ -2,9 +2,9 @@
 
 An experimental, controller-driven web browser client for **Xbox 360 RGH/JTAG**, with an Edge-inspired interface and Google search. All interface text and project documentation are in English.
 
-**Version 0.1.0 is a PC-assisted preview.** Edge or Chrome renders websites on a Windows PC; a native Xbox 360 XEX displays page frames and sends controller actions over the local network. The PC must stay on. This is not a native port of Chromium, Microsoft Edge, or Google Chrome to PowerPC.
+**Version 0.1.1 is a PC-assisted preview.** Edge or Chrome renders websites on a Windows PC; a native Xbox 360 XEX displays page frames and sends controller actions over the local network. The PC must stay on. This is not a native port of Chromium, Microsoft Edge, or Google Chrome to PowerPC.
 
-![New tab](docs/msedge-home.png)
+![Xbox interface preview](docs/preview-connected.png)
 
 ## Quick start
 
@@ -19,6 +19,8 @@ If using a release ZIP, extract it first and follow the included `TESTING.md`. A
 
 ## Controls
 
+In preview 0.1.1, pressing **L3** opens toolbar focus. Use D-pad left/right and A to choose Back, Forward, Reload, Home or Address. Press B or L3 to return to the page. Press START while disconnected to reload settings and retry.
+
 | Control | Action |
 |---|---|
 | Left stick / D-pad | Move the on-page pointer |
@@ -32,6 +34,14 @@ If using a release ZIP, extract it first and follow the included `TESTING.md`. A
 | BACK | New-tab home page |
 | Right stick click | Reload |
 | Xbox Guide | Return to the dashboard using the console menu |
+
+## Configuration and connection troubleshooting
+
+Preview 0.1.1 uses native Xbox file APIs instead of the C runtime to read settings, with `game:\browser.ini`, launch-relative and common HDD/USB installation paths. It accepts UTF-8 with or without BOM, UTF-16LE, CRLF/LF, whitespace and case-insensitive keys. The screen reports the path that actually loaded. An existing malformed file is diagnosed instead of silently loading another copy.
+
+**INI LOADED** means the file is valid; it does not mean the PC connection succeeded. A token mismatch is reported separately as HTTP 401. TCP failures show the target PC address and error code. The app no longer tells the user to copy the INI merely because a page has not loaded.
+
+Windows Firewall can block an otherwise working local bridge. Run `allow-xbox-firewall.cmd` **as Administrator** to allow only the example Xbox address `192.168.0.169` on TCP 36080. If your Xbox has another address, run `allow-xbox-firewall.cmd -XboxAddress YOUR_XBOX_IP`. This rule is restricted to the Python executable and that Xbox address, including when Windows classifies your LAN as Public.
 
 To search: press Y, type a query, and confirm the console keyboard. To use a form: point at its field, press A, then X to type; press START to submit.
 

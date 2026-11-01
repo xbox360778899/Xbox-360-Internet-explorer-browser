@@ -1,4 +1,4 @@
-// X360Browser 0.1.0. GPL-3.0. Native Xbox 360 client using orbita's XUI renderer.
+// X360Browser 0.1.1. GPL-3.0. Native Xbox 360 client using orbita's XUI renderer.
 #include <xtl.h>
 #include <winsockx.h>
 #include <d3d9.h>
@@ -8,6 +8,8 @@
 #include <string.h>
 #include <math.h>
 #include "xui.h"
+#include "browser_config.h"
+#include "browser_ui.h"
 
 enum { W=1280, H=720, PAGE_Y=100, PAGE_H=560, FRAME_BYTES=W*PAGE_H*4 };
 static IDirect3DDevice9* device;
@@ -18,6 +20,11 @@ static IDirect3DVertexDeclaration9* declaration;
 static uint32_t canvasPixels[W*H], pagePixels[W*PAGE_H];
 static CRITICAL_SECTION guard;
 static bool haveFrame=false, running=true;
+static bool configReady=false,toolbarFocus=false;
+static int toolbarSelection=4;
+static unsigned frameVersion=0;
+static volatile LONG reloadSettings=0;
+static char configPath[MAX_PATH]="",configError[192]="browser.ini was not found.";
 static char statusText[192]="Connecting to the PC browser...";
 static char host[64]="192.168.1.100", token[128]="";
 static int port=36080;
@@ -30,6 +37,7 @@ static XOVERLAPPED keyboard;
 static WCHAR keyboardText[1025];
 static int keyboardMode=0;
 static DWORD previousButtons=0;
+static void loadConfig();
 
 static void setStatus(const char* value) {
     EnterCriticalSection(&guard);
@@ -82,7 +90,9 @@ static bool request(const char* path,char* output,int capacity,int* length) {
         timeval wait;wait.tv_sec=3;wait.tv_usec=0;
         int ready=select(0,NULL,&writable,&errors,&wait);
         if(ready<=0 || FD_ISSET(s,&errors) || !FD_ISSET(s,&writable)) {
-            closesocket(s);setStatus("PC not reachable. Start Edge/Chrome bridge and check browser.ini / firewall.");return false;
+            int socketError=ready==0?WSAETIMEDOUT:WSAGetLastError();
+            char error[192];sprintf_s(error,sizeof(error),"Cannot connect to %s:%d (TCP %d). Check the PC bridge / firewall.",host,port,socketError);
+            closesocket(s);setStatus(error);return false;
         }
     }
     nonblocking=0;ioctlsocket(s,FIONBIO,&nonblocking);
@@ -99,7 +109,7 @@ static bool request(const char* path,char* output,int capacity,int* length) {
     const char* sizeHeader=strstr(headers,"Content-Length:");
     long size=sizeHeader?strtol(sizeHeader+15,NULL,10):-1;
     if(code!=200 || size<0 || size>capacity || used<4 || memcmp(headers+used-4,"\r\n\r\n",4)!=0) {
-        char error[192];sprintf_s(error,sizeof(error),"Bridge HTTP %d. %s",code,code==401?"Copy matching browser.ini to the Xbox.":"Page could not load. Try another address.");
+        char error[192];sprintf_s(error,sizeof(error),"Bridge HTTP %d. %s",code,code==401?"INI loaded, but its token does not match the PC.":"Page could not load. Try another address.");
         setStatus(error);closesocket(s);return false;
     }
     bool ok=receiveAll(s,output,(int)size);closesocket(s);
@@ -110,6 +120,8 @@ static DWORD WINAPI networkWorker(void*) {
     char* incoming=(char*)malloc(FRAME_BYTES);
     if(!incoming) {setStatus("Not enough memory for browser frames.");return 1;}
     while(running) {
+        if(InterlockedExchange(&reloadSettings,0))loadConfig();
+        if(!configReady) {Sleep(250);continue;}
         char path[4096]="";
         EnterCriticalSection(&guard);
         if(head!=tail) {strcpy_s(path,events[head].path);head=(head+1)%16;}
@@ -119,25 +131,44 @@ static DWORD WINAPI networkWorker(void*) {
         if(path[0])actionOk=request(path,incoming,FRAME_BYTES,&length);
         if(request("/frame",incoming,FRAME_BYTES,&length) && length==FRAME_BYTES) {
             EnterCriticalSection(&guard);
-            memcpy(pagePixels,incoming,FRAME_BYTES);haveFrame=true;
+            memcpy(pagePixels,incoming,FRAME_BYTES);haveFrame=true;++frameVersion;
             LeaveCriticalSection(&guard);
-            if(actionOk)setStatus("Connected to PC browser  |  Google search  |  Preview 0.1.0");
+            if(actionOk)setStatus("Connected  /  Google search  /  LB and RB: history  /  BACK: home");
         }
         Sleep(350);
     }
     free(incoming);return 0;
 }
 static void loadConfig() {
-    FILE* file=NULL;
-    if(fopen_s(&file,"game:\\browser.ini","rb")!=0 || !file)return;
-    char line[256];
-    while(fgets(line,sizeof(line),file)) {
-        line[strcspn(line,"\r\n")]=0;
-        if(strncmp(line,"host=",5)==0)strncpy_s(host,sizeof(host),line+5,_TRUNCATE);
-        if(strncmp(line,"token=",6)==0)strncpy_s(token,sizeof(token),line+6,_TRUNCATE);
-        if(strncmp(line,"port=",5)==0) {int v=atoi(line+5);if(v>0 && v<65536)port=v;}
+    // GAME: is the title's launch directory. Native file APIs report useful FATX errors.
+    const char* candidates[]={"game:\\browser.ini","GAME:\\browser.ini","browser.ini",
+        "Hdd1:\\APLICATIVOS\\X360Browser\\browser.ini","Hdd:\\APLICATIVOS\\X360Browser\\browser.ini",
+        "Usb0:\\X360Browser\\browser.ini","Usb1:\\X360Browser\\browser.ini"};
+    BrowserConfig parsed;char problem[192]="browser.ini was not found beside the executable.";
+    char selected[MAX_PATH]="";bool ready=false;DWORD fileError=ERROR_FILE_NOT_FOUND;
+    bool found=false;
+    for(int i=0;i<(int)(sizeof(candidates)/sizeof(candidates[0]));++i) {
+        if(!candidates[i][0])continue;
+        HANDLE file=CreateFileA(candidates[i],GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+        if(file==INVALID_HANDLE_VALUE) {fileError=GetLastError();continue;}
+        found=true;strcpy_s(selected,candidates[i]);
+        DWORD size=GetFileSize(file,NULL),received=0;unsigned char raw[4096];
+        if(size>sizeof(raw)) {strcpy_s(problem,"browser.ini is larger than 4096 bytes.");CloseHandle(file);break;}
+        BOOL ok=ReadFile(file,raw,size,&received,NULL);fileError=GetLastError();CloseHandle(file);
+        if(!ok || received!=size) {sprintf_s(problem,sizeof(problem),"Cannot read browser.ini (file error %lu).",fileError);break;}
+        ready=browserParseConfig(raw,(int)size,&parsed,problem);
+        // An existing invalid file must be diagnosed, not masked by another copy.
+        break;
     }
-    fclose(file);
+    if(!found)sprintf_s(problem,sizeof(problem),"browser.ini was not found (file error %lu).",fileError);
+    EnterCriticalSection(&guard);
+    configReady=ready;haveFrame=false;head=tail=0;
+    strcpy_s(configPath,selected);strcpy_s(configError,problem);
+    if(ready) {
+        strcpy_s(host,parsed.host);strcpy_s(token,parsed.token);port=parsed.port;
+        strcpy_s(statusText,"Settings loaded. Connecting to the PC bridge...");
+    } else strcpy_s(statusText,problem);
+    LeaveCriticalSection(&guard);
 }
 static bool compileShader(const char* source,const char* profile,ID3DXBuffer** result) {
     ID3DXBuffer* errors=NULL;
@@ -169,34 +200,12 @@ static bool initializeGraphics() {
     device->SetSamplerState(0,D3DSAMP_MINFILTER,D3DTEXF_POINT);device->SetSamplerState(0,D3DSAMP_MAGFILTER,D3DTEXF_POINT);
     xui_canvas_init(&canvas,canvasPixels,W,H,W);return true;
 }
-static void label(int x,int y,const char* text,uint32_t color=0xe4ebef,int font=XUI_F_BODY) {
-    xui_text(&canvas,font,x,y,color,text,0,W-x-20);
-}
 static void draw() {
-    xui_fill(&canvas,0,0,W,H,0x12191e);
-    xui_round_rect(&canvas,18,10,246,30,7,0x2c363c,255);label(32,15,"X360Browser  /  New tab",0xdce8e8,XUI_F_LABEL);
-    label(286,15,"+",0x91dabc,XUI_F_LABEL);label(1030,15,"Xbox 360  |  Preview",0x8daca7,XUI_F_LABEL);
-    label(22,59,"<    >    @",0xb5c6c9);
-    xui_round_rect(&canvas,155,48,1100,39,7,0x27343b,255);
-    label(174,57,"Press Y to search Google or enter a website address",0xc1d2d5);
     EnterCriticalSection(&guard);
-    bool connected=haveFrame;
-    if(connected)memcpy(canvasPixels+W*PAGE_Y,pagePixels,FRAME_BYTES);
-    char status[192];strcpy_s(status,statusText);
+    BrowserView view={haveFrame,configReady,toolbarFocus,toolbarSelection,(int)pointerX,(int)pointerY,
+        host,port,statusText,configPath,configError,frameVersion,haveFrame?pagePixels:NULL};
+    browserRender(&canvas,&view);
     LeaveCriticalSection(&guard);
-    if(!connected) {
-        xui_vgrad(&canvas,0,PAGE_Y,W,PAGE_H,0x286d69,120,0);
-        label(70,230,"Your web. On your 360.",0xe1f6ec,XUI_F_TITLE);
-        label(74,298,"Start the Edge or Chrome bridge on your PC.");
-        label(74,340,"Copy browser.ini beside default.xex, then reopen the app.");
-        char info[160];sprintf_s(info,sizeof(info),"PC: %s:%d",host,port);label(74,392,info,0x8fd8be);
-        if(!token[0])label(74,438,"browser.ini is missing. Generate it with scripts/configure.py.",0xf3ba78);
-    } else {
-        int x=(int)pointerX,y=(int)pointerY+PAGE_Y;
-        xui_circle(&canvas,x,y,9,0x00130c,240);xui_circle(&canvas,x,y,5,0x8fffc6,255);
-    }
-    label(22,668,"A Click   B Back   X Type   Y Address   START Enter   LB/RB History   LT/RT Scroll   BACK Home",0xd3e2df,XUI_F_LABEL);
-    label(22,694,status,0x8db5a8,XUI_F_LABEL);
     D3DLOCKED_RECT lock;
     if(SUCCEEDED(texture->LockRect(0,&lock,NULL,0))) {
         for(int y=0;y<H;++y)memcpy((char*)lock.pBits+y*lock.Pitch,canvasPixels+y*W,W*4);
@@ -227,6 +236,18 @@ static void input() {
     XINPUT_STATE state;if(XInputGetState(0,&state)!=ERROR_SUCCESS)return;
     WORD pressed=state.Gamepad.wButtons & ~previousButtons;previousButtons=state.Gamepad.wButtons;
     if(keyboardMode)return;
+    if(pressed&XINPUT_GAMEPAD_LEFT_THUMB)toolbarFocus=!toolbarFocus;
+    if(toolbarFocus) {
+        if(pressed&XINPUT_GAMEPAD_DPAD_LEFT)toolbarSelection=(toolbarSelection+4)%5;
+        if(pressed&XINPUT_GAMEPAD_DPAD_RIGHT)toolbarSelection=(toolbarSelection+1)%5;
+        if(pressed&XINPUT_GAMEPAD_A) {
+            const char* actions[]={"back","forward","reload","home"};
+            if(toolbarSelection==4)openKeyboard(1);else enqueue(actions[toolbarSelection]);
+        }
+        if(pressed&XINPUT_GAMEPAD_B)toolbarFocus=false;
+        if(pressed&XINPUT_GAMEPAD_Y)openKeyboard(1);
+        return;
+    }
     float dx=state.Gamepad.sThumbLX/32768.0f,dy=state.Gamepad.sThumbLY/32768.0f;
     if(fabsf(dx)>0.18f)pointerX+=dx*10;
     if(fabsf(dy)>0.18f)pointerY-=dy*10;
@@ -240,7 +261,10 @@ static void input() {
     if(pressed&XINPUT_GAMEPAD_B)enqueue("back");
     if(pressed&XINPUT_GAMEPAD_X)openKeyboard(2);
     if(pressed&XINPUT_GAMEPAD_Y)openKeyboard(1);
-    if(pressed&XINPUT_GAMEPAD_START)enqueue("enter");
+    if(pressed&XINPUT_GAMEPAD_START) {
+        if(!haveFrame) {InterlockedExchange(&reloadSettings,1);setStatus("Reloading browser.ini and retrying the connection...");}
+        else enqueue("enter");
+    }
     if(pressed&XINPUT_GAMEPAD_BACK)enqueue("home");
     if(pressed&XINPUT_GAMEPAD_LEFT_SHOULDER)enqueue("back");
     if(pressed&XINPUT_GAMEPAD_RIGHT_SHOULDER)enqueue("forward");
@@ -255,9 +279,14 @@ void __cdecl main() {
     InitializeCriticalSection(&guard);loadConfig();
     if(!initializeGraphics()) {OutputDebugStringA("X360Browser graphics initialization failed.");return;}
     XNetStartupParams params;ZeroMemory(&params,sizeof(params));params.cfgSizeOfStruct=sizeof(params);params.cfgFlags=XNET_STARTUP_BYPASS_SECURITY;
-    if(XNetStartup(&params)!=0)setStatus("Network startup failed.");
-    WSADATA data;if(WSAStartup(MAKEWORD(2,2),&data)!=0)setStatus("Socket startup failed.");
-    HANDLE worker=CreateThread(NULL,0,networkWorker,NULL,0,NULL);
-    if(!worker)setStatus("Could not start the browser connection.");
+    params.cfgSockDefaultRecvBufsizeInK=64;params.cfgSockDefaultSendBufsizeInK=32;
+    int networkResult=XNetStartup(&params);
+    WSADATA data;int socketResult=networkResult?networkResult:WSAStartup(MAKEWORD(2,2),&data);
+    if(networkResult || socketResult) {
+        char error[128];sprintf_s(error,sizeof(error),"Xbox network startup failed (%d / %d).",networkResult,socketResult);setStatus(error);
+    } else {
+        HANDLE worker=CreateThread(NULL,0,networkWorker,NULL,0,NULL);
+        if(!worker)setStatus("Could not start the browser connection.");
+    }
     for(;;) {input();draw();Sleep(1);}
 }

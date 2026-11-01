@@ -10,3 +10,5 @@
 The SHA-256 hashes of the original user-supplied Orbita files, before adapting comments, are recorded in `vendor/orbita/source-manifest.json`. An upstream repository URL or original Git commit was not supplied; none is invented here. Orbita branding and logo are not displayed by X360Browser.
 
 The original legacy source archive is not copied wholesale. No original Orbita ELF binaries, beta services, keys, authentication flows or firmware are shipped.
+
+In 0.1.1 the browser layout follows Orbita's 64-pixel TV margins and measured font baselines. Drawing primitives and typography still come directly from the supplied XUI modules; layout, navigation controls, configuration parsing and diagnostics are implemented in `src/browser_ui.h` and `src/browser_config.h`.
