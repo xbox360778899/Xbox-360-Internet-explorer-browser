@@ -1,32 +1,22 @@
-# Xbox 360 test guide
+# Native Xbox 360 test guide - 0.2.0
 
-## PC setup
+Copy only default.xex to the console. No PC service or INI is required.
 
-1. Install Python 3.11+ and Microsoft Edge or Google Chrome.
-2. Open a terminal in the extracted project folder.
-3. Run `python -m pip install -r bridge/requirements.txt`.
-4. Run `python scripts/configure.py`.
-5. Start `start-edge.cmd` first. To try Chrome, stop Edge's service with Ctrl+C and run `start-chrome.cmd`.
+1. Open the native home page while the PC bridge is stopped.
+2. Move the pointer with the left stick and click the address field with A.
+3. Enter https://example.com/ and check that readable text appears.
+4. Press Y for an HTTPS address or Bing query; X starts a Google query.
+5. Click a link with A. Check B/LB back, RB forward and trigger scrolling.
+6. Click the toolbar, or press L3 and use D-pad/A.
 
-## Console setup
+The reader does not execute JavaScript or reproduce CSS layouts. Search providers can return verification pages. This is a native engine compatibility limit, not a PC requirement.
 
-Copy `Release/default.xex` and the newly generated `Release/browser.ini` into the same folder on a USB drive or HDD. Run the XEX with Aurora. Keep the PC bridge running on the same network.
-
-Press Y and enter `Xbox 360 homebrew`. Confirm the keyboard. Verify Google loads; it may show a cookie or verification prompt. Use A to click, X to type into a focused page field, START for Enter, and triggers to scroll.
-
-## Report a problem
-
-For 0.1.1, check whether the screen says **INI LOADED**. If so, settings were read: report the TCP or HTTP status instead of moving the INI. START retries without restarting the XEX. If the PC bridge responds on the PC but the Xbox cannot reach it, run `allow-xbox-firewall.cmd` as Administrator; its default Xbox address is `192.168.0.169`.
-
-Include the on-screen status message, Edge/Chrome selection, whether the home page appears, whether the pointer moves, and a photo if the console screen is blank. Never post your `browser.ini` token.
-
-| Message | Check |
+| Failure | Report |
 |---|---|
-| PC not reachable | PC bridge running, PC IPv4 in browser.ini, same network, TCP 36080 firewall |
-| Bridge HTTP 401 | Copy the same generated browser.ini to the Xbox |
-| Bridge HTTP 502 | Website timed out, unsupported navigation, or browser process stopped |
-| Incomplete page frame | Ethernet connection and PC bridge status |
-| Settings file not found | Keep browser.ini beside default.xex; press START to reload |
-| Missing/invalid field | Correct the named host/port/token field; press START to reload |
+| Network startup | Both startup numbers |
+| Connection | URL, step and hexadecimal error |
+| TLS | TLS number, network error, console date/time |
+| HTTP | Status and address |
+| Empty page | Whether the site requires JavaScript or verification |
 
-Physical Xbox 360 testing has not been performed during development. This is a test build, not a confirmed working hardware release.
+Physical USB mouse support is not implemented; the mouse pointer uses the gamepad. A physical Xbox test has not been performed during development.

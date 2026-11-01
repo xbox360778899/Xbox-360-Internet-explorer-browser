@@ -1,8 +1,14 @@
 {
+  "version": "0.2.0-native-preview",
   "configuration": "Release | Xbox 360",
   "format": "XEX2",
   "binary": "Release/default.xex",
-  "bytes": 4927488,
-  "sha256": "c08066d50945d035cc540ee568d23cf483b48eef0d69b2e10c1480ba3d947024",
-  "physical_console_test": "not performed"
+  "bytes": 5386240,
+  "sha256": "7f9230f1c7948930ef62ec5c1158ce04d431fe24efb88c373e226521d7ea1d47",
+  "runtime": "Native XDK HTTPS + BearSSL + HTML text/link reader",
+  "pc_required": false,
+  "browser_ini_required": false,
+  "mouse": "Gamepad-controlled pointer; physical USB mouse not implemented",
+  "physical_console_test": "not performed",
+  "modern_browser_engine": "not implemented"
 }

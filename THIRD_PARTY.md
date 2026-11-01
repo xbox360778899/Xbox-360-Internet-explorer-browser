@@ -1,14 +1,13 @@
-# Third-party code and attribution
+# Third-party attribution
 
-| Component | Source | License | Usage and changes |
-|---|---|---|---|
-| Orbita legacy 0.21.44 XUI | User-provided `orbita-main/app/h264play/source/ui` | GPL-3.0, original top-level LICENSE retained | `vendor/orbita/xui.h`, `xui_gfx.c`, `xui_text.c`, `xui_assets.h`. Reused CPU drawing primitives and font rasterization. Original comments removed for English-only source; attribution added; compiled as C++ for the VS2010 compiler. Original symbols retained. New Xbox XEX rendering and network layer authored separately. |
-| Inter 4.1 font | The Inter Project Authors, 2016; supplied under `orbita-main/third_party/inter-4.1` | SIL Open Font License 1.1 | Rasterized glyphs embedded by Orbita. Full license at `vendor/orbita/Inter-OFL.txt`. |
-| Playwright Python | Microsoft, https://github.com/microsoft/playwright-python | Apache-2.0 | Separately installed PC dependency. Controls locally installed Edge/Chrome. No browser binaries vendored. |
-| Pillow | Python Pillow contributors, https://github.com/python-pillow/Pillow | MIT-CMU / HPND, see upstream license | Separately installed PC dependency. Converts rendered page pixels to Xbox network byte order. |
+| Component | Source | License and usage |
+|---|---|---|
+| Orbita legacy 0.21.44 XUI | User-provided orbita-main/app/h264play/source/ui | GPL-3.0, supplied LICENSE retained. vendor/orbita drawing/text modules; comments removed for English source; compiled as C++ for VS2010. |
+| Inter 4.1 | The Inter Project Authors, supplied with Orbita | SIL OFL 1.1, vendor/orbita/Inter-OFL.txt. Rasterized glyphs. |
+| BearSSL | Thomas Pornin, https://www.bearssl.org/ | MIT, notices retained in each file. vendor/bearssl copied from the user's working X360HUB source; portable configuration retained. TLS 1.2 and certificate validation. |
+| Mozilla CA bundle via certifi | User-owned X360HUB vendor/certifi | MPL 2.0, vendor/certifi/LICENSE. Public anchors exported into src/tls_roots.h by tools/make_tls_roots.py. No private keys. |
+| X360HUB native TLS transport | User-owned heltindev/X360HUB, HOMEBREW_X360HUB/src/https_tls12.h | Included in the user's GPL-3.0 derivative. src/native_net.h removes the catalog whitelist, adds content-type/final-URL reporting, page limits and host test adapters. |
 
-The SHA-256 hashes of the original user-supplied Orbita files, before adapting comments, are recorded in `vendor/orbita/source-manifest.json`. An upstream repository URL or original Git commit was not supplied; none is invented here. Orbita branding and logo are not displayed by X360Browser.
+Original Orbita file hashes are recorded in vendor/orbita/source-manifest.json. No associated upstream commit was supplied; none is invented. Orbita branding is not displayed.
 
-The original legacy source archive is not copied wholesale. No original Orbita ELF binaries, beta services, keys, authentication flows or firmware are shipped.
-
-In 0.1.1 the browser layout follows Orbita's 64-pixel TV margins and measured font baselines. Drawing primitives and typography still come directly from the supplied XUI modules; layout, navigation controls, configuration parsing and diagnostics are implemented in `src/browser_ui.h` and `src/browser_config.h`.
+No Edge/Chromium engine, proprietary SDK headers/libraries, desktop browser profiles, PC relay or firmware is shipped. Developer supplies the XDK locally.
