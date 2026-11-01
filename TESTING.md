@@ -1,4 +1,4 @@
-# Native Xbox 360 test guide - 0.2.0
+# Native Xbox 360 test guide - 0.3.0
 
 Copy only default.xex to the console. No PC service or INI is required.
 
@@ -7,9 +7,12 @@ Copy only default.xex to the console. No PC service or INI is required.
 3. Enter https://example.com/ and check that readable text appears.
 4. Press Y for an HTTPS address or Bing query; X starts a Google query.
 5. Click a link with A. Check B/LB back, RB forward and trigger scrolling.
-6. Click the toolbar, or press L3 and use D-pad/A.
+6. Wait 4.5 seconds without input: toolbar and pointer should hide, while the watermark stays visible. Move the stick to reveal them.
+7. Open the three-dot menu, or press L3 and use D-pad up/down plus A. B closes it.
+8. Open https://raw.githubusercontent.com/heltindev/X360Browser/main/tests/fixtures/media.html . Check red/blue PNG, JPEG, GIF and BMP images.
+9. Open your own direct HTTPS WMV/XMV file, at most 64 MB. Wait for buffering; test picture/audio, A pause/resume and B stop. Keep an image of any decoder error.
 
-The reader does not execute JavaScript or reproduce CSS layouts. Search providers can return verification pages. This is a native engine compatibility limit, not a PC requirement.
+The reader does not execute JavaScript or reproduce full CSS layouts. Search providers can return verification pages. MP4/H.264, HLS/DASH, DRM and JavaScript video sites are not implemented. Native WMV/XMV playback depends on the file's codec and still requires hardware testing.
 
 | Failure | Report |
 |---|---|

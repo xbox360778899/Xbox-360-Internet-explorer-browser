@@ -1,62 +1,57 @@
 # X360Browser
 
-Experimental native HTML reader for **Xbox 360 RGH/JTAG**, with an Edge-inspired interface, direct HTTPS and a gamepad-controlled mouse pointer. UI and documentation are in English.
+Experimental native browser for Xbox 360 RGH/JTAG. **No PC, browser.ini or relay is required.** Version 0.3.0 adds an LG webOS-inspired interface and initial native media support. All UI text is in English.
 
-**Version 0.2.0 runs on the console without a PC.** Copy `default.xex` to the Xbox and launch it. No browser.ini, Python, bridge, desktop browser or Windows Firewall setup is used.
-
-![Native interface](docs/native-home.png)
-
-## Compatibility
-
-This is X360Browser with an Edge-inspired design, **not Microsoft's Edge binary or the Chromium engine**. The initial native engine displays HTML text and clickable links. It does not implement CSS layout, JavaScript, images, video, audio, cookies, login, interactive forms or downloads. Modern websites and search providers may require JavaScript or return verification pages. Bing/Google queries are sent directly to the providers; usable search results are not guaranteed.
-
-Changing the interface or search provider does not add a modern browser engine. A full NetSurf/Chromium-class engine is not integrated in this preview.
+![LG-inspired browser](docs/lg-home.png)
 
 ## Install
 
-1. Download default.xex from the [native preview release](https://github.com/heltindev/X360Browser/releases/tag/v0.2.0-native-preview).
-2. Copy it to a folder on the Xbox HDD/USB, such as `Hdd1:\APLICATIVOS\X360Browser\default.xex`.
-3. Launch through Aurora. Existing browser.ini files are ignored.
-4. Connect the console to the Internet and set its date/time correctly for HTTPS.
-5. Press Y for an HTTPS address or Bing query; X starts a Google query.
+Download [default.xex from the preview release](https://github.com/heltindev/X360Browser/releases/tag/v0.3.0-lg-preview), copy it to a USB/HDD folder and open it through Aurora. Keep the console connected to the Internet and its date/time correct for HTTPS certificates. Old INI files are ignored.
 
-## Controls
+## Interface and controls
 
-| Control | Action |
+The gray top bar, pink focus outlines, recommended-site tiles and right-side menu are inspired by the supplied LG browser references. No LG branding/assets are used. The toolbar and pointer disappear after **4.5 seconds without input**; moving the stick or pressing a button reveals them. Open menus and the keyboard keep controls visible.
+
+- Left stick / D-pad: mouse pointer. A: click.
+- LT/RT or right stick: scroll. B/LB: back. RB: forward.
+- Y: address or Bing query. X: Google query. START/R3: reload. BACK: Home.
+- L3: open/close the menu. D-pad up/down and A select an item; B closes it.
+- During video: A pauses/resumes, B stops.
+
+The cursor is an original anti-aliased image icon with hover coloring. It uses the gamepad; physical USB mouse input is not implemented.
+
+## Images and video
+
+| Content | Current implementation |
 |---|---|
-| Left stick / D-pad | Move mouse pointer |
-| A | Click link, home shortcut or toolbar |
-| B / LB | Back |
-| RB | Forward |
-| LT / RT, or right stick | Scroll |
-| Y | Address / Bing keyboard |
-| X | Google search keyboard |
-| L3 | Focus toolbar; use D-pad left/right and A |
-| START / R3 | Reload |
-| BACK | Home |
-| Guide | Use the console menu to return to dashboard |
+| HTML text and links | Parsed and rendered by the Xbox |
+| JPEG, PNG, BMP | Downloaded directly and decoded with stb_image |
+| GIF | First frame only |
+| Page images | Up to eight HTTPS img resources; includes basic data-src lazy-image URLs |
+| Direct image address | Native image view |
+| Direct WMV/XMV video | Buffered in RAM and handed to native XMedia2 with XAudio2 audio; codec/hardware verification pending |
+| HTML video/source tags | Clickable video cards for direct URLs |
+| MP4/H.264, HLS/DASH, DRM, YouTube players | Not implemented |
+| JavaScript, full CSS layout, cookies/login, interactive forms | Not implemented |
+| SVG, WebP, CSS background images, animated GIF | Not implemented |
 
-The pointer changes color over links. Physical USB mouse support is **not implemented or verified**; use the Xbox gamepad.
+Limits: 2 MB per image, 4096 pixels per dimension and 4 million decoded pixels; images are scaled to fit. Video buffering is capped at 64 MB and completes before playback. Unsupported codecs/content show an error instead of a success message. This is not a full LG, Edge or Chromium engine and cannot play video from every website.
 
-## Build
+## Preview watermark
 
-Open X360Browser.vcxproj in Visual Studio 2010 with a locally installed Xbox 360 SDK, choose **Release | Xbox 360**, or run build-release.cmd. Output: Release/default.xex. SDK files are not included.
+**Developed by @heltonleiras** remains visible on pages and the video overlay, even when the toolbar is hidden. It is enabled by X360BROWSER_PRERELEASE=1 in src/lg_ui.h. A stable release can build with that definition set to 0; this release remains a preview.
 
-BearSSL performs TLS 1.2, certificate-chain, hostname and validity checks using a vendored public CA bundle. Verification is not disabled. Only HTTPS is fetched; HTTP addresses are upgraded to HTTPS and require destination support. Page sizes and document structures are bounded. Networking, parsing and rendering run inside the XEX.
+## Build and verification
 
-## Verification
+Visual Studio 2010 + locally installed Xbox 360 SDK: open X360Browser.vcxproj with Release | Xbox 360 or run build-release.cmd. Output: Release/default.xex. Proprietary SDK source/tools are not shipped.
 
-Native tests exercise URL/search handling, entity decoding, removal of script/style text, links, pointer hit testing and the same UI renderer as the XEX. A Windows adapter tests the same BearSSL/HTTP code; it does not verify Xbox networking or hardware. See docs/native-verification.txt and docs/build-verification.json for observed results.
+Host tests exercise PNG/JPEG/GIF/BMP decoding, rejected malformed data, image/video HTML parsing, layout, pointer/menu hit tests, toolbar inactivity and watermark persistence. The same UI code produces docs screenshots. Network tests use the same HTTPS transport through a Windows adapter. **Physical Xbox testing, video/audio decoding and playback are still pending**; host tests do not prove console compatibility.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tests/build-native-host.ps1
 .\obj\NativeHost.exe --network
 ```
 
-**Physical Xbox testing remains pending.** Report the address, on-screen step/TCP/TLS/HTTP error, and a photo if needed.
+A native image test page is available at https://raw.githubusercontent.com/heltindev/X360Browser/main/tests/fixtures/media.html . It contains original red/blue PNG, JPEG, GIF and BMP fixtures.
 
-## Sources and license
-
-Orbita legacy 0.21.44 supplies the CPU drawing/text modules. The user-owned X360HUB TLS transport supplies the adapted native socket/BearSSL layer. HTML reader, browser layout, navigation and gamepad mouse are new.
-
-GPL-3.0; see LICENSE and THIRD_PARTY.md. Independent project; not affiliated with Microsoft. Xbox and Microsoft Edge are Microsoft trademarks.
+GPL-3.0. See LICENSE, THIRD_PARTY.md and docs/build-verification.json. Independent project, not affiliated with LG or Microsoft.

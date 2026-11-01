@@ -52,7 +52,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)vendor\orbita;$(ProjectDir)vendor\bearssl;$(ProjectDir)vendor\bearssl\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>xnet.lib;d3d9.lib;d3dx9.lib;xgraphics.lib;xapilib.lib;xboxkrnl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>xmedia2.lib;xaudio2.lib;xmcore.lib;xnet.lib;d3d9.lib;d3dx9.lib;xgraphics.lib;xapilib.lib;xboxkrnl.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <ImageXex><ConfigurationFile></ConfigurationFile></ImageXex>
@@ -74,6 +74,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\native_main.cpp" />
+    <ClCompile Include="src\image_decoder.cpp" />
     <ClCompile Include="vendor\orbita\xui_gfx.c"><CompileAs>CompileAsCpp</CompileAs></ClCompile>
     <ClCompile Include="vendor\orbita\xui_text.c"><CompileAs>CompileAsCpp</CompileAs></ClCompile>
     <ClCompile Include="vendor\bearssl\aead\ccm.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)bearssl_ccm.obj</ObjectFileName></ClCompile>

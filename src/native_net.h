@@ -12,7 +12,7 @@ static WebNetState webNetState={0};
 #include "tls_roots.h"
 
 extern "C" void XeCryptRandom(BYTE*,DWORD);
-static const DWORD HUB_NET_LIMIT=2*1024*1024;
+static const DWORD HUB_NET_LIMIT=64*1024*1024;
 struct HubTLSRequest {
  br_ssl_client_context ssl;
  br_x509_minimal_context x509;

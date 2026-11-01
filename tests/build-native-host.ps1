@@ -16,6 +16,7 @@ $xml=@'
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\tests\native_checks.cpp" />
+    <ClCompile Include="..\src\image_decoder.cpp" />
     <ClCompile Include="..\vendor\orbita\xui_gfx.c"><CompileAs>CompileAsCpp</CompileAs></ClCompile>
     <ClCompile Include="..\vendor\orbita\xui_text.c"><CompileAs>CompileAsCpp</CompileAs></ClCompile>
 UNITS

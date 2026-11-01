@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 - 2026-11-01
+
+- Add an LG webOS-inspired gray toolbar, pink focus outlines and a right-side menu.
+- Hide toolbar/pointer after 4.5 seconds without input and restore them on interaction.
+- Replace the primitive pointer with original anti-aliased cursor icons.
+- Add the prerelease watermark Developed by @heltonleiras on pages and video overlays.
+- Fetch/decode JPEG, PNG, BMP and GIF first-frame images, with bounded memory and image layout.
+- Recognize HTML img, video and source tags and direct media URLs.
+- Add RAM-buffered direct WMV/XMV playback through native XMedia2 and XAudio2. Video/audio hardware testing remains pending.
+- Keep unsupported MP4, streaming/DRM, JavaScript and full CSS limitations explicit.
+- Add tests for image decoding, malformed data, media parsing, menu hit tests, auto-hide and watermark persistence.
+
 ## 0.2.0 - 2026-11-01
 
 - Replace the PC-assisted renderer with native HTTPS sockets, BearSSL TLS 1.2 and a bounded HTML text/link reader.

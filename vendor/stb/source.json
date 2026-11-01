@@ -1,0 +1,7 @@
+{
+  "project": "nothings/stb",
+  "commit": "d14d46f6b44456eb88beac58cba833a4135d4c89",
+  "url": "https://raw.githubusercontent.com/nothings/stb/d14d46f6b44456eb88beac58cba833a4135d4c89/stb_image.h",
+  "sha256": "594c2fe35d49488b4382dbfaec8f98366defca819d916ac95becf3e75f4200b3",
+  "license": "MIT or public domain; notices retained in stb_image.h"
+}

@@ -7,8 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 enum {WEB_LINES=1800,WEB_LINKS=512,WEB_URL=2048,WEB_TEXT=200,WEB_HTML_LIMIT=1024*1024};
-struct WebLine {char text[WEB_TEXT];int link,font,y,height;};
-struct WebDocument {char url[WEB_URL],title[128];WebLine lines[WEB_LINES];char links[WEB_LINKS][WEB_URL];int count,linkCount,height;bool truncated;};
+enum {WEB_TEXT_ROW=0,WEB_IMAGE_ROW=1,WEB_VIDEO_ROW=2,WEB_IMAGES=8};
+struct WebLine {char text[WEB_TEXT];int link,font,y,height,kind,media;};
+struct WebImage {char url[WEB_URL],alt[160];uint32_t* pixels;int width,height,state;};
+struct WebDocument {char url[WEB_URL],title[128];WebLine lines[WEB_LINES];char links[WEB_LINKS][WEB_URL];int count,linkCount,height;bool truncated;WebImage images[WEB_IMAGES];int imageCount;};
+static void webReleaseImages(WebDocument* doc){for(int i=0;i<doc->imageCount;++i){free(doc->images[i].pixels);doc->images[i].pixels=NULL;}doc->imageCount=0;}
+static void webLayout(WebDocument* doc){doc->height=0;for(int i=0;i<doc->count;++i){WebLine* row=&doc->lines[i];if(row->kind==WEB_IMAGE_ROW){WebImage* image=&doc->images[row->media];row->height=image->pixels?image->height+36:132;}row->y=doc->height;doc->height+=row->height;}}
 static bool webPrefix(const char* s,const char* prefix) {
     while(*prefix)if(tolower((unsigned char)*s++)!=tolower((unsigned char)*prefix++))return false;return true;
 }
@@ -51,7 +55,7 @@ static bool webResolveURL(const char* base,const char* reference,char* output,si
     strcpy(output,temp);return true;
 }
 static bool webSearchOrURL(const char* input,char* output,size_t capacity,bool google=false) {
-    if(webEqual(input,"browser:home"))return webCopy(output,capacity,"browser:home");
+    if(webEqual(input,"browser:home")||webEqual(input,"browser:help"))return webCopy(output,capacity,input);
     if(webPrefix(input,"https://") || webPrefix(input,"http://"))return webResolveURL("https://www.bing.com/",input,output,capacity);
     if(strchr(input,'.') && !strchr(input,' ') && !strchr(input,':')) {
         char temp[WEB_URL];if(strlen(input)+9>=sizeof(temp))return false;sprintf(temp,"https://%s",input);return webResolveURL(temp,temp,output,capacity);
@@ -116,7 +120,7 @@ static void webEmit(WebDocument* doc,char* text,int link,int font) {
         }
         if(!n){n=1;}line[n]=0;
         WebLine* row=&doc->lines[doc->count++];strcpy(row->text,line);row->link=link;row->font=font;row->y=doc->height;
-        row->height=font==XUI_F_H2?42:28;doc->height+=row->height;
+        row->height=font==XUI_F_H2?42:28;row->kind=WEB_TEXT_ROW;row->media=-1;doc->height+=row->height;
         p+=n;while(*p==' ')++p;
     }
     if(*p)doc->truncated=true;text[0]=0;
@@ -124,7 +128,7 @@ static void webEmit(WebDocument* doc,char* text,int link,int font) {
 static void webParseHTML(WebDocument* doc,const char* html,const char* url) {
     memset(doc,0,sizeof(*doc));webCopy(doc->url,sizeof(doc->url),url);strcpy(doc->title,"Web page");
     char chunk[4096]="",base[WEB_URL];webCopy(base,sizeof(base),url);int used=0,link=-1,font=XUI_F_BODY;bool hidden=false,inTitle=false;
-    char hiddenTag[16]="";
+    char hiddenTag[16]="";bool inVideo=false;
     const char* p=html;
     while(*p && doc->count<WEB_LINES) {
         if(webPrefix(p,"<!--")){const char* end=strstr(p+4,"-->");p=end?end+3:p+strlen(p);continue;}
@@ -149,6 +153,26 @@ static void webParseHTML(WebDocument* doc,const char* html,const char* url) {
                 inTitle=!close;p=end+1;continue;
             }
             if(inTitle){p=end+1;continue;}
+            bool imageTag=webEqual(name,"img")&&!close;
+            bool videoTag=webEqual(name,"video");
+            if(videoTag)inVideo=!close;
+            if(imageTag || (videoTag&&!close) || (webEqual(name,"source") && inVideo && !close)) {
+                chunk[used]=0;webEmit(doc,chunk,link,font);used=0;
+                char src[WEB_URL]="",resolved[WEB_URL];
+                bool has=webAttribute(tag,"src",src,sizeof(src));
+                if(!has || !src[0] || webPrefix(src,"data:"))has=webAttribute(tag,"data-src",src,sizeof(src));
+                if(has && webResolveURL(base,src,resolved,sizeof(resolved)) && doc->count<WEB_LINES) {
+                    if(imageTag && doc->imageCount<WEB_IMAGES) {
+                        int index=doc->imageCount++;WebImage* image=&doc->images[index];strcpy(image->url,resolved);
+                        webAttribute(tag,"alt",image->alt,sizeof(image->alt));
+                        WebLine* row=&doc->lines[doc->count++];memset(row,0,sizeof(*row));row->kind=WEB_IMAGE_ROW;row->media=index;row->link=link;row->font=XUI_F_LABEL;row->height=132;row->y=doc->height;doc->height+=row->height;
+                    } else if(!imageTag && doc->linkCount<WEB_LINKS) {
+                        int index=doc->linkCount++;strcpy(doc->links[index],resolved);
+                        WebLine* row=&doc->lines[doc->count++];memset(row,0,sizeof(*row));strcpy(row->text,"Play video");row->kind=WEB_VIDEO_ROW;row->media=-1;row->link=index;row->font=XUI_F_BODY;row->height=92;row->y=doc->height;doc->height+=row->height;
+                    }
+                }
+                p=end+1;continue;
+            }
             bool anchor=webEqual(name,"a");bool block=anchor||webEqual(name,"p")||webEqual(name,"div")||webEqual(name,"li")||webEqual(name,"br")||webEqual(name,"section")||webEqual(name,"article")||webEqual(name,"tr")||webEqual(name,"hr")||webEqual(name,"h1")||webEqual(name,"h2")||webEqual(name,"h3");
             if(block){chunk[used]=0;webEmit(doc,chunk,link,font);used=0;}
             if(anchor) {
