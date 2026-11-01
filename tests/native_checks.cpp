@@ -12,12 +12,14 @@ static void save(const char* path) {
     FILE* out=fopen(path,"wb");assert(out);fprintf(out,"P6\n1280 720\n255\n");
     for(int i=0;i<1280*720;++i){fputc((screen[i]>>16)&255,out);fputc((screen[i]>>8)&255,out);fputc(screen[i]&255,out);}fclose(out);
 }
+#include "styled_checks.h"
 static void checks() {
     char url[WEB_URL];
     assert(webSearchOrURL("Xbox 360",url,sizeof(url)) && !strcmp(url,"https://www.bing.com/search?q=Xbox%20360"));
     assert(webSearchOrURL("xbox 360",url,sizeof(url),true) && webPrefix(url,"https://www.google.com/search?q="));
     assert(webResolveURL("https://example.com/a/b","/test?q=1",url,sizeof(url)) && !strcmp(url,"https://example.com/test?q=1"));
     assert(webResolveURL("https://example.com/a/b","next",url,sizeof(url)) && !strcmp(url,"https://example.com/a/next"));
+    assert(webResolveURL("https://example.com/styles/main.css","../images/a.png",url,sizeof(url)) && !strcmp(url,"https://example.com/images/a.png"));
     assert(webResolveURL("https://example.com/a/b","//other.example/a",url,sizeof(url)) && !strcmp(url,"https://other.example/a"));
     assert(!webResolveURL("https://example.com/","javascript:alert(1)",url,sizeof(url)));
     assert(!webResolveURL("https://example.com/","https://user:pass@example.com/",url,sizeof(url)));
@@ -74,10 +76,18 @@ static void networkImageCheck() {
     printf("NETWORK image: fetch=%s decoded=%s size=%dx%d bytes=%lu %s\n",ok?"OK":"FAILED",rgb?"OK":"FAILED",width,height,image.size,message);
     free(rgb);free(image.bytes);
 }
+static void networkStyledCheck(){
+    WebDownload html={0};char message[192]="";webNetState.cancel=0;
+    bool ok=webDownload("https://raw.githubusercontent.com/heltindev/X360Browser/main/tests/fixtures/layout.html",&html,message,sizeof(message));
+    void* page=ok?browserStyledCreate((const char*)html.bytes,html.url,webStyledResourceFetch,NULL):NULL;
+    printf("NETWORK styled page: fetch=%s engine=%s css=%d images=%d %s\n",ok?"OK":"FAILED",page?"OK":"FAILED",browserStyledCSSCount(page),browserStyledImageCount(page),message);
+    if(page){xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);browserStyledDraw(page,&canvas,48,104,1184,550,0);save("obj/css-network.ppm");browserStyledDestroy(page);}free(html.bytes);
+}
 int main(int argc,char**) {
     setvbuf(stdout,NULL,_IONBF,0);
     checks();
     mediaChecks();
-    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();WSACleanup();}
+    styledChecks();
+    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();WSACleanup();}
     return 0;
 }

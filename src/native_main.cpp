@@ -1,4 +1,4 @@
-// X360Browser 0.3.0: native media browser with LG-inspired chrome. GPL-3.0.
+// X360Browser 0.4.0: native HTML/CSS, media and green browser chrome. GPL-3.0.
 #include <xtl.h>
 #include <winsockx.h>
 #include <d3d9.h>
@@ -129,7 +129,13 @@ static DWORD WINAPI nativeWorker(void*) {
                 EnterCriticalSection(&guard);
                 if(requestGeneration==generation){free(readyMovieBytes);readyMovieBytes=download.bytes;readyMovieSize=download.size;download.bytes=NULL;loading=false;strcpy_s(statusText,"Video buffered. Starting native playback...");}
                 LeaveCriticalSection(&guard);free(download.bytes);continue;
-            } else {webParseHTML(spare,(const char*)download.bytes,download.url);spare->truncated=spare->truncated||download.truncated;strcpy_s(message,"Page loaded. Fetching supported images...");}
+            } else {
+                webParseHTML(spare,(const char*)download.bytes,download.url);spare->truncated=spare->truncated||download.truncated;
+                EnterCriticalSection(&guard);if(requestGeneration==generation)strcpy_s(statusText,"Loading website styles and images...");LeaveCriticalSection(&guard);
+                spare->styled=browserStyledCreate((const char*)download.bytes,download.url,webStyledResourceFetch,NULL);
+                if(spare->styled){spare->height=browserStyledHeight(spare->styled);sprintf_s(message,sizeof(message),"Page ready. Stylesheets: %d",browserStyledCSSCount(spare->styled));}
+                else strcpy_s(message,"Using the text reader for this page.");
+            }
         }
         if(!success){char html[1024];sprintf_s(html,sizeof(html),"<h1>Page or media could not load</h1><p>%s</p><p>Press Y for another address or BACK for Home.</p>",message);webParseHTML(spare,html,url);}
         free(download.bytes);download.bytes=NULL;
@@ -138,7 +144,7 @@ static DWORD WINAPI nativeWorker(void*) {
         if(requestGeneration==generation){WebDocument* previous=shownDoc;shownDoc=spare;spare=previous;published=shownDoc;strcpy_s(currentURL,published->url);strcpy_s(statusText,message);loading=false;home=false;pageScroll=0;}
         LeaveCriticalSection(&guard);
         if(!published)continue;
-        for(int i=0;i<published->imageCount && requestGeneration==generation && !webNetState.cancel;++i) {
+        for(int i=0;!published->styled && i<published->imageCount && requestGeneration==generation && !webNetState.cancel;++i) {
             if(published->images[i].pixels)continue;
             WebDownload picture={0};char problem[192];uint32_t* rgb=NULL;int width=0,height=0;
             if(webDownload(published->images[i].url,&picture,problem,sizeof(problem),true))rgb=browserDecodeImage(picture.bytes,(int)picture.size,&width,&height);
@@ -179,7 +185,9 @@ static void click() {
     } else {
         EnterCriticalSection(&guard);
         NativeView view=makeView();
-        int link=nativeHitLink(&view);char url[WEB_URL]="";if(link>=0 && link<shownDoc->linkCount)strcpy_s(url,shownDoc->links[link]);
+        int link=-1;char url[WEB_URL]="";
+        if(shownDoc->styled)browserStyledClick(shownDoc->styled,(int)mouseX-48,(int)mouseY-lgPageTop(&view)+pageScroll,url,sizeof(url));
+        else {link=nativeHitLink(&view);if(link>=0 && link<shownDoc->linkCount)strcpy_s(url,shownDoc->links[link]);}
         LeaveCriticalSection(&guard);if(url[0])navigate(url);
     }
 }
@@ -247,6 +255,9 @@ static void draw() {
     chromeVisible=lgChromeVisible(GetTickCount(),lastInteraction,menuOpen,keyboardActive,loading);
     NativeView view=makeView();
     nativeRender(&canvas,&view);LeaveCriticalSection(&guard);
+    // Do not overwrite the linear UI texture while the GPU samples its prior frame.
+    // This XDK synchronization replaces the libxenon framebuffer/cache operations.
+    device->BlockUntilIdle();
     D3DLOCKED_RECT lock;
     if(SUCCEEDED(texture->LockRect(0,&lock,NULL,0))){for(int y=0;y<H;++y){uint32_t* target=(uint32_t*)((char*)lock.pBits+y*lock.Pitch);for(int x=0;x<W;++x){uint32_t color=canvasPixels[y*W+x];target[x]=(!movie||color)?color|0xff000000:0;}}texture->UnlockRect(0);}
     struct Vertex{float x,y,u,v;};const Vertex vertices[]={{-1,1,0,0},{1,1,1,0},{-1,-1,0,1},{1,-1,1,1}};

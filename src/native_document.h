@@ -6,12 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "styled_page.h"
 enum {WEB_LINES=1800,WEB_LINKS=512,WEB_URL=2048,WEB_TEXT=200,WEB_HTML_LIMIT=1024*1024};
 enum {WEB_TEXT_ROW=0,WEB_IMAGE_ROW=1,WEB_VIDEO_ROW=2,WEB_IMAGES=8};
 struct WebLine {char text[WEB_TEXT];int link,font,y,height,kind,media;};
 struct WebImage {char url[WEB_URL],alt[160];uint32_t* pixels;int width,height,state;};
-struct WebDocument {char url[WEB_URL],title[128];WebLine lines[WEB_LINES];char links[WEB_LINKS][WEB_URL];int count,linkCount,height;bool truncated;WebImage images[WEB_IMAGES];int imageCount;};
-static void webReleaseImages(WebDocument* doc){for(int i=0;i<doc->imageCount;++i){free(doc->images[i].pixels);doc->images[i].pixels=NULL;}doc->imageCount=0;}
+struct WebDocument {char url[WEB_URL],title[128];WebLine lines[WEB_LINES];char links[WEB_LINKS][WEB_URL];int count,linkCount,height;bool truncated;WebImage images[WEB_IMAGES];int imageCount;void* styled;};
+static void webReleaseImages(WebDocument* doc){for(int i=0;i<doc->imageCount;++i){free(doc->images[i].pixels);doc->images[i].pixels=NULL;}doc->imageCount=0;if(doc->styled){browserStyledDestroy(doc->styled);doc->styled=NULL;}}
 static void webLayout(WebDocument* doc){doc->height=0;for(int i=0;i<doc->count;++i){WebLine* row=&doc->lines[i];if(row->kind==WEB_IMAGE_ROW){WebImage* image=&doc->images[row->media];row->height=image->pixels?image->height+36:132;}row->y=doc->height;doc->height+=row->height;}}
 static bool webPrefix(const char* s,const char* prefix) {
     while(*prefix)if(tolower((unsigned char)*s++)!=tolower((unsigned char)*prefix++))return false;return true;
@@ -47,7 +48,23 @@ static bool webResolveURL(const char* base,const char* reference,char* output,si
             }
         }
     }
-    if(!webPrefix(temp,"https://") || strlen(temp)>=capacity)return false;
+    if(!webPrefix(temp,"https://"))return false;
+    // Resolve dot segments before fetching CSS-relative images and imports.
+    const char* pathStart=strchr(temp+8,'/');
+    if(pathStart) {
+        const char* pathEnd=strchr(pathStart,'?');if(!pathEnd)pathEnd=temp+strlen(temp);
+        char normalized[WEB_URL*2];size_t root=(size_t)(pathStart-temp)+1;
+        memcpy(normalized,temp,root);size_t written=root;const char* segment=pathStart+1;
+        while(segment<pathEnd) {
+            const char* end=segment;while(end<pathEnd && *end!='/')++end;size_t n=end-segment;
+            if(n==2 && segment[0]=='.' && segment[1]=='.'){if(written>root){while(written>root && normalized[written-1]!='/')--written;if(written>root)--written;}}
+            else if(n && !(n==1 && segment[0]=='.')){if(written>root)normalized[written++]='/';if(written+n>=sizeof(normalized))return false;memcpy(normalized+written,segment,n);written+=n;}
+            segment=end<pathEnd?end+1:end;
+        }
+        if(pathEnd>pathStart+1 && pathEnd[-1]=='/' && written>root)normalized[written++]='/';
+        size_t suffix=strlen(pathEnd);if(written+suffix>=sizeof(normalized))return false;memcpy(normalized+written,pathEnd,suffix+1);strcpy(temp,normalized);
+    }
+    if(strlen(temp)>=capacity)return false;
     const char* h=temp+8;const char* end=h;while(*end && *end!='/' && *end!='?')++end;
     if(end==h)return false;
     for(const char* p=h;p<end;++p)if(!isalnum((unsigned char)*p) && *p!='.' && *p!='-')return false;

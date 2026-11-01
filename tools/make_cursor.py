@@ -4,7 +4,7 @@ from PIL import Image,ImageDraw,ImageFilter
 root=Path(__file__).parents[1]
 points=[(4,2),(4,30),(11,24),(17,38),(24,35),(18,22),(29,22)]
 arrays=[]
-for name,color in [('normal','#f7fbfc'),('hover','#ff5a8a')]:
+for name,color in [('normal','#f7fbfc'),('hover','#63e19c')]:
     scale=4
     image=Image.new('RGBA',(40*scale,46*scale))
     shadow=Image.new('RGBA',image.size)

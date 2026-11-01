@@ -27,3 +27,9 @@ static bool webDownload(const char* url,WebDownload* result,char* message,size_t
     else result->bytes[result->size]=0;
     hubNetClose(request);return ok;
 }
+static bool webStyledResourceFetch(void*,const char* url,unsigned char** bytes,int* size,char* finalURL,int capacity) {
+    if(webNetState.cancel)return false;WebDownload download={0};char message[192];
+    if(!webDownload(url,&download,message,sizeof(message)))return false;
+    if(download.kind==WEB_DOWNLOAD_VIDEO||download.size>2*1024*1024){free(download.bytes);return false;}
+    *bytes=download.bytes;*size=(int)download.size;strncpy_s(finalURL,capacity,download.url,_TRUNCATE);return true;
+}

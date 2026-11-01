@@ -1,11 +1,14 @@
 {
-  "version": "0.3.0-lg-preview",
+  "version": "0.4.0-css-preview",
   "configuration": "Release | Xbox 360",
   "format": "XEX2",
   "binary": "Release/default.xex",
-  "bytes": 10072064,
-  "sha256": "e6b7af7b721921329ba4da27700e0f71f39b0429ac5062c0b689361efc46cc86",
-  "runtime": "Native HTTPS + HTML/images + XMedia2 WMV/XMV playback path",
+  "bytes": 10825728,
+  "sha256": "891e8fb4ae520aeaf007365f2901d628064cc263f90c4a355f4c21199e22f74c",
+  "runtime": "Native HTTPS + litehtml HTML/CSS layout + images + XMedia2 WMV/XMV",
+  "css_engine": "litehtml v0.3 port for VS2010/XDK",
+  "css": "External stylesheets, style blocks, inline styles and supported legacy CSS layout",
+  "css_limits": "No JavaScript, modern Flexbox/Grid, complete modern CSS or web-font engine",
   "image_formats": [
     "JPEG",
     "PNG",

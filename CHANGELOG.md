@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 - 2026-11-01
+
+- Add native HTML/CSS layout using a port of litehtml v0.3, compatible with VS2010/XDK.
+- Fetch external stylesheets, support style blocks/inline styling and CSS-positioned images/backgrounds through the native HTTPS callback.
+- Render supported CSS box layout, floats, tables, margins, padding, borders, fonts and colors; dispatch pointer events through the rendered DOM.
+- Preserve a text-reader fallback for pages outside renderer limits. Full modern CSS and JavaScript compatibility is not claimed.
+- Apply green chrome/cursor accents and remove the home media guide, control legend and normal status footer.
+- Replace reload, search and navigation symbols with original antialiased masks on a shared grid.
+- Synchronize the GPU before rewriting the shared UI texture.
+- Review both supplied video/GPU files in full; record porting requirements without claiming new H.264 support.
+
 ## 0.3.0 - 2026-11-01
 
 - Add an LG webOS-inspired gray toolbar, pink focus outlines and a right-side menu.

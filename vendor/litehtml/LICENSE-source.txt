@@ -1,0 +1,2 @@
+Project BSD-3-Clause notice retrieved from https://github.com/litehtml/litehtml/blob/master/LICENSE
+Legacy v0.3 archive has no standalone license file; current upstream describes litehtml as BSD-3-Clause.

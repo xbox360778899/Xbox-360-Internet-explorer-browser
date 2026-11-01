@@ -1,4 +1,4 @@
-# Native Xbox 360 test guide - 0.3.0
+# Native Xbox 360 test guide - 0.4.0
 
 Copy only default.xex to the console. No PC service or INI is required.
 
@@ -11,8 +11,9 @@ Copy only default.xex to the console. No PC service or INI is required.
 7. Open the three-dot menu, or press L3 and use D-pad up/down plus A. B closes it.
 8. Open https://raw.githubusercontent.com/heltindev/X360Browser/main/tests/fixtures/media.html . Check red/blue PNG, JPEG, GIF and BMP images.
 9. Open your own direct HTTPS WMV/XMV file, at most 64 MB. Wait for buffering; test picture/audio, A pause/resume and B stop. Keep an image of any decoder error.
+10. Open https://raw.githubusercontent.com/heltindev/X360Browser/main/tests/fixtures/layout.html . Expect a green banner, two bordered columns, a tinted inline-style box and a red/blue image. Click the link in the first column.
 
-The reader does not execute JavaScript or reproduce full CSS layouts. Search providers can return verification pages. MP4/H.264, HLS/DASH, DRM and JavaScript video sites are not implemented. Native WMV/XMV playback depends on the file's codec and still requires hardware testing.
+The litehtml renderer handles a legacy subset of CSS layout, external stylesheets, style blocks and inline styling. It does not execute JavaScript or implement modern Flexbox/Grid and the full CSS platform. Search providers can return verification pages. MP4/H.264, HLS/DASH, DRM and JavaScript video sites are not implemented. Native WMV/XMV playback depends on the file's codec and still requires hardware testing.
 
 | Failure | Report |
 |---|---|
