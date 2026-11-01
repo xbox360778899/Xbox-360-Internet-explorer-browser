@@ -20,6 +20,8 @@ $xml=@'
     <ClCompile Include="..\tests\native_checks.cpp" />
     <ClCompile Include="..\src\image_decoder.cpp" />
     <ClCompile Include="..\src\styled_page.cpp" />
+    <ClCompile Include="..\src\web_js.cpp" />
+    <ClCompile Include="..\vendor\duktape\duktape.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)host_duktape.obj</ObjectFileName><Optimization>MinSpace</Optimization></ClCompile>
     <ClCompile Include="..\vendor\orbita\xui_gfx.c"><CompileAs>CompileAsCpp</CompileAs></ClCompile>
     <ClCompile Include="..\vendor\orbita\xui_text.c"><CompileAs>CompileAsCpp</CompileAs></ClCompile>
 UNITS

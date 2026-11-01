@@ -103,13 +103,59 @@ public:
     // litehtml v0.3 predates flex/grid. Stack these layouts instead of rejecting
     // entire boxes. This is a readability fallback, NOT complete CSS flex/grid support.
     static void legacyLayoutFallback(std::string& css) {
-        const char* needles[]={"display:flex","display: flex","display:grid","display: grid",
-              "display:inline-flex","display: inline-flex","display:inline-grid","display: inline-grid"};
-        for(int n=0;n<8;++n){size_t index=0;const char* needle=needles[n];size_t length=strlen(needle);
-            while((index=css.find(needle,index))!=std::string::npos){
-                css.replace(index,length,"display:block");index+=13;
+        // Litehtml table rows approximate simple flex/grid; not complete layout semantics.
+        std::string supplemental;
+        size_t start=0;int count=0;
+        while(start<css.size() && count++<300){
+            size_t open=css.find('{',start);
+            if(open==std::string::npos)break;
+            size_t close=css.find('}',open+1);
+            if(close==std::string::npos)break;
+            size_t selectorStart=css.rfind('}',open);
+            selectorStart=selectorStart==std::string::npos?0:selectorStart+1;
+            std::string selector=css.substr(selectorStart,open-selectorStart);
+            size_t first=selector.find_first_not_of(" \t\r\n");
+            if(first!=std::string::npos)selector.erase(0,first);
+            size_t last=selector.find_last_not_of(" \t\r\n");
+            if(last!=std::string::npos)selector.erase(last+1);
+            std::string body=css.substr(open+1,close-open-1);
+            const char* prefixes[]={"display:flex","display: flex","display:grid","display: grid",
+                                  "display:inline-flex","display: inline-flex",
+                                  "display:inline-grid","display: inline-grid"};
+            bool layout=false,grid=false;
+            for(int i=0;i<8;++i){
+                size_t at=body.find(prefixes[i]);
+                if(at!=std::string::npos){
+                    grid=(i==2||i==3||i==6||i==7);
+                    body.replace(at,strlen(prefixes[i]),"display:block");layout=true;break;
+                }
             }
+            if(layout){
+                bool column=body.find("flex-direction:column")!=std::string::npos ||
+                            body.find("flex-direction: column")!=std::string::npos;
+                bool safe=!selector.empty()&&selector.size()<100&&selector[0]!='@'&&
+                          selector.find('{')==std::string::npos&&selector.find(',')==std::string::npos;
+                if(!column && safe && supplemental.size()<16384){
+                    int columns=0;
+                    if(grid){
+                        size_t property=body.find("grid-template-columns:");
+                        if(property!=std::string::npos){
+                            size_t repeat=body.find("repeat(",property);
+                            if(repeat!=std::string::npos)columns=atoi(body.c_str()+repeat+7);
+                            if(columns<2||columns>4)columns=0;
+                        }
+                    }
+                    char rule[192];
+                    if(columns>1)sprintf_s(rule,sizeof(rule)," > *{display:block;float:left;width:%d%%;}\n",100/columns);
+                    else strcpy_s(rule,sizeof(rule)," > *{display:block;float:left;}\n");
+                    supplemental+=selector; supplemental+=rule;
+                }
+                css.replace(open+1,close-open-1,body);
+                close=open+body.size()+1;
+            }
+            start=close+1;
         }
+        css+=supplemental;
     }
     static void customProperties(std::string& css) {
         // Small legacy compatibility layer: resolve constant :root CSS variables.

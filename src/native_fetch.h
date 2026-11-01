@@ -47,17 +47,17 @@ static void webCacheStore(const char* key,const WebDownload* in){
     strcpy_s(e->key,key);strcpy_s(e->url,in->url);strcpy_s(e->type,in->type);browserCacheBytes+=in->size;
 }
 static bool webVideoExtension(const char* url){const char* end=strchr(url,'?');size_t n=end?(size_t)(end-url):strlen(url);return n>=4 && (webPrefix(url+n-4,".wmv")||webPrefix(url+n-4,".xmv"));}
-static bool webDownload(const char* url,WebDownload* result,char* message,size_t messageSize,bool imageOnly=false,bool resourceOnly=false) {
+static bool webDownload(const char* url,WebDownload* result,char* message,size_t messageSize,bool imageOnly=false,bool resourceOnly=false,DWORD maxIdleMs=0) {
     memset(result,0,sizeof(*result));if(webCacheLookup(url,result,imageOnly))return true;
     const char* accept=resourceOnly?"text/css,*/*;q=0.7":imageOnly?"image/png,image/jpeg,image/gif,image/bmp,*/*;q=0.5":"text/html,application/xhtml+xml,text/plain;q=0.8";
-    DWORD status=0;HubTLSRequest* request=hubNetOpen(url,&status,resourceOnly?5500:10000,accept);
+    DWORD status=0;HubTLSRequest* request=hubNetOpen(url,&status,maxIdleMs?maxIdleMs:(resourceOnly?5500:10000),accept);
     if(!request){errorMessage(message,messageSize,GetLastError());return false;}
     strncpy_s(result->url,sizeof(result->url),request->finalURL,_TRUNCATE);strcpy_s(result->type,request->contentType);
     bool image=webPrefix(request->contentType,"image/");
     bool video=webVideoExtension(url)||webPrefix(request->contentType,"video/x-ms-wmv")||webPrefix(request->contentType,"video/x-ms-asf");
     if(webPrefix(request->contentType,"video/") && !video){strcpy_s(message,messageSize,"This video format needs another decoder. This preview supports direct WMV/XMV, not MP4/HLS/DRM.");hubNetClose(request);return false;}
     if(imageOnly && !image){strcpy_s(message,messageSize,"The image server did not return an image.");hubNetClose(request);return false;}
-    if(!image && !video && request->contentType[0] && !webPrefix(request->contentType,"text/")&&!webPrefix(request->contentType,"application/xhtml+xml")&&!(resourceOnly&&(webPrefix(request->contentType,"application/css")||webPrefix(request->contentType,"application/x-css")||webPrefix(request->contentType,"application/octet-stream")))){strcpy_s(message,messageSize,"Unsupported content type. Open HTML, a supported image, or a direct WMV/XMV file.");hubNetClose(request);return false;}
+    if(!image && !video && request->contentType[0] && !webPrefix(request->contentType,"text/")&&!webPrefix(request->contentType,"application/xhtml+xml")&&!(resourceOnly&&(webPrefix(request->contentType,"application/css")||webPrefix(request->contentType,"application/x-css")||webPrefix(request->contentType,"application/javascript")||webPrefix(request->contentType,"application/x-javascript")||webPrefix(request->contentType,"application/octet-stream")))){strcpy_s(message,messageSize,"Unsupported content type. Open HTML, a supported image, or a direct WMV/XMV file.");hubNetClose(request);return false;}
     result->kind=video?WEB_DOWNLOAD_VIDEO:image?WEB_DOWNLOAD_IMAGE:WEB_DOWNLOAD_HTML;
     DWORD limit=video?64*1024*1024:image?2*1024*1024:WEB_HTML_LIMIT;
     if(request->lengthKnown && request->length>limit && result->kind!=WEB_DOWNLOAD_HTML){sprintf_s(message,messageSize,"Media exceeds this preview's %lu MB limit.",limit/(1024*1024));hubNetClose(request);return false;}
@@ -102,6 +102,16 @@ static bool webDownload(const char* url,WebDownload* result,char* message,size_t
     bool permitted=!webFind(request->cacheControl,"no-store")&&!webFind(request->cacheControl,"private")&&!webFind(request->cacheControl,"no-cache")&&!webFind(request->cacheControl,"max-age=0");
     if(ok&&permitted)webCacheStore(url,result);
     hubNetClose(request);return ok;
+}
+static bool webJavaScriptResourceFetch(void*,const char* url,unsigned char** bytes,int* size,char* finalURL,int capacity){
+    if(webNetState.cancel)return false;
+    WebDownload dl={0};char message[192]="";
+    if(!webDownload(url,&dl,message,sizeof(message),false,true,3000))return false;
+    bool valid=dl.kind==WEB_DOWNLOAD_HTML && dl.size<=128*1024 &&
+       (webPrefix(dl.type,"application/javascript") || webPrefix(dl.type,"text/javascript") ||
+        webPrefix(dl.type,"application/x-javascript") || webPrefix(dl.type,"text/plain"));
+    if(!valid){free(dl.bytes);return false;}
+    *bytes=dl.bytes;*size=(int)dl.size;strncpy_s(finalURL,capacity,dl.url,_TRUNCATE);return true;
 }
 static bool webStyledResourceFetch(void*,const char* url,unsigned char** bytes,int* size,char* finalURL,int capacity) {
     if(webNetState.cancel)return false;WebDownload download={0};char message[192];

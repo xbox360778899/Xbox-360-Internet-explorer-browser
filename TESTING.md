@@ -1,4 +1,4 @@
-# Native Xbox 360 test guide - 0.7.0-css-network-preview
+# Native Xbox 360 test guide - 0.8.0-js-layout-preview
 
 On startup the preview opens its local browser:home with Google, X360HUB, Wikipedia, and Test website buttons, without a PC. During loading expect a darkened screen and spinner. Click the number beside the address bar to create/switch tabs; verify the original URL, page and scroll are retained. When the toolbar hides the page fills 1280x720. The watermark remains above the page. The dim lower-left indicator reports SDK physical RAM in MB and percentage, with no frame or CPU utilization values; CPU/GPU temperatures should appear after the SMC query when valid, otherwise N/A. Revisit the CSS layout fixture to test cache and progressive image loading. Up to four tabs can be created (closing tabs is not implemented in this preview).
 
@@ -28,3 +28,7 @@ The litehtml renderer handles a legacy subset of CSS layout, external stylesheet
 | Empty page | Whether the site requires JavaScript or verification |
 
 Physical USB mouse support is not implemented; the mouse pointer uses the gamepad. A physical Xbox test has not been performed during development.
+
+## Hardware regression tests for 0.8
+
+Open example.com, then X360HUB. Record final CSS N OK/N failed and JS N OK/N failed stats. Test a local basic script with document.write to confirm JS renders on Xbox. Compare horizontal flex rows and grid card positions. MP4/YouTube remains unsupported. A host test is not a hardware pass.

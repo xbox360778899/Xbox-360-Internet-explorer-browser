@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.0-js-layout-preview - 2026-11-01
+
+- Vendor and compile Duktape 2.7 into the Xbox 360 XEX and Windows host test.
+- Execute bounded inline and 3 same-origin external scripts, with basic document.write/ID setters.
+- Constrain JavaScript heap to 6 MiB and bytecode timeout to 300 ms; test infinite loops.
+- Render basic horizontal flex rows and 2-4 column CSS grids via float fallbacks; pixel checks pass.
+- Add on-console CSS/JS success and failure counts.
+- Windows host X360HUB HTML/CSS passes; both external X360HUB scripts still cause syntax errors.
+- Full DOM/events, modern JavaScript frameworks, true Flexbox/Grid and MP4/YouTube NOT implemented.
+- Physical Xbox hardware validation PENDING; older builds failed owner tests.
+
+
+
 ## 0.7.0-css-network-preview - 2026-11-01
 
 - Vendor and compile upstream zlib 1.3.1 into both PowerPC XEX and Windows host build; request/decode gzip/deflate HTTP content under output-size limits.

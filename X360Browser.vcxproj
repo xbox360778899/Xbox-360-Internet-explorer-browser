@@ -76,6 +76,8 @@
     <ClCompile Include="src\native_main.cpp" />
     <ClCompile Include="src\image_decoder.cpp" />
     <ClCompile Include="src\styled_page.cpp" />
+    <ClCompile Include="src\web_js.cpp" />
+    <ClCompile Include="vendor\duktape\duktape.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)duktape.obj</ObjectFileName><Optimization>MinSpace</Optimization></ClCompile>
     <ClCompile Include="vendor\zlib\adler32.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)zlib_adler32.obj</ObjectFileName></ClCompile>
     <ClCompile Include="vendor\zlib\crc32.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)zlib_crc32.obj</ObjectFileName></ClCompile>
     <ClCompile Include="vendor\zlib\inffast.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)zlib_inffast.obj</ObjectFileName></ClCompile>

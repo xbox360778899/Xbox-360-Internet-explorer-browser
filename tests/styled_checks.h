@@ -31,5 +31,22 @@ static void styledChecks(){
     assert(page);browserStyledDraw(page,&canvas,0,76,1280,644,0);
     assert(screen[(76+20)*1280+20]==0x268b41);
     browserStyledDestroy(page);
-    printf("PASS: litehtml CSS, media-query widths, root CSS variables and flex/grid readability fallback.\n");
+    page=browserStyledCreate("<html><head><style>body{margin:0}.row{display:flex}#left{background:#d02020;width:80px;height:32px}#right{background:#2030d0;width:80px;height:32px}</style></head><body><div class='row'><div id='left'></div><div id='right'></div></div></body></html>","https://example.com/",NULL,NULL);
+    assert(page);browserStyledDraw(page,&canvas,0,76,1280,644,0);
+    bool red=false,blue=false;
+    int redX=-1,redY=-1,blueX=-1,blueY=-1;
+    for(int y=76;y<136;++y)for(int x=0;x<240;++x){
+        unsigned v=screen[y*1280+x];
+        if(v==0xd02020){red=true;redX=x;redY=y;}
+        if(v==0x2030d0){blue=true;blueX=x;blueY=y;}
+    }
+    printf("FLEX PIXELS: red=%d x=%d y=%d, blue=%d x=%d y=%d\n",red,redX,redY,blue,blueX,blueY);
+    assert(red&&blue&&blueX>redX&&abs(redY-blueY)<32);
+    browserStyledDestroy(page);
+    page=browserStyledCreate("<html><head><style>body{margin:0}.grid{display:grid;grid-template-columns:repeat(2,1fr)}#gleft{background:#d02020;height:24px}#gright{background:#2030d0;height:24px}</style></head><body><div class='grid'><div id='gleft'></div><div id='gright'></div></div></body></html>","https://example.com/",NULL,NULL);
+    assert(page);browserStyledDraw(page,&canvas,0,76,1280,644,0);
+    assert(screen[(76+8)*1280+100]==0xd02020);
+    assert(screen[(76+8)*1280+800]==0x2030d0);
+    browserStyledDestroy(page);
+    printf("PASS: CSS, media widths, root variables, flex row, and 2-column grid fallback.\n");
 }

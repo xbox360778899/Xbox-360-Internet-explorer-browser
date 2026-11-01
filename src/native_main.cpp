@@ -1,4 +1,4 @@
-// X360Browser 0.6.0-hardware-preview: native HTML/CSS, media and green browser chrome. GPL-3.0.
+// X360Browser 0.8.0-js-layout-preview: native HTML/CSS, media and green browser chrome. GPL-3.0.
 #include <xtl.h>
 #include <winsockx.h>
 #include <d3d9.h>
@@ -156,6 +156,7 @@ static void errorMessage(char* output,size_t capacity,DWORD error) {
     else sprintf_s(output,capacity,"Website connection failed at step %lu (0x%08lX). Check console Internet and the address.",webNetState.httpPhase,error);
 }
 #include "native_fetch.h"
+#include "web_js.h"
 static DWORD WINAPI nativeWorker(void*) {
     WebDocument* spare=(WebDocument*)calloc(1,sizeof(WebDocument));
     if(!spare)return 1;
@@ -165,7 +166,7 @@ static DWORD WINAPI nativeWorker(void*) {
         if(!url[0]){Sleep(30);continue;}
         InterlockedExchange(&webNetState.cancel,0);webNetState.httpCode=webNetState.tlsError=webNetState.socketError=0;
         webReleaseImages(spare);memset(spare,0,sizeof(*spare));
-        WebDownload download={0};char message[192]="";bool success=false;
+        WebDownload download={0};char message[192]="";bool success=false;int jsExecuted=0,jsFailed=0;
         if(webEqual(url,"browser:help")) {
             const char* help="<h1>Images and video</h1><p>JPEG, PNG, BMP and the first frame of GIF images are decoded by the console.</p><p>Open a direct WMV/XMV video link. The file is buffered in RAM before playback. Maximum size: 64 MB.</p><p>A pauses/resumes video. B stops playback. The toolbar hides after 4.5 seconds without input.</p><p>MP4/H.264, HLS/DASH, DRM, YouTube and JavaScript video players are not supported by this build.</p><p>All networking and rendering runs on the Xbox. Physical console media testing remains pending.</p>";
             webParseHTML(spare,help,url);success=true;strcpy_s(message,"Native media guide");
@@ -182,9 +183,14 @@ static DWORD WINAPI nativeWorker(void*) {
                 if(requestGeneration==generation){free(readyMovieBytes);readyMovieBytes=download.bytes;readyMovieSize=download.size;download.bytes=NULL;loading=false;strcpy_s(statusText,"Video buffered. Starting native playback...");}
                 LeaveCriticalSection(&guard);free(download.bytes);continue;
             } else {
-                webParseHTML(spare,(const char*)download.bytes,download.url);spare->truncated=spare->truncated||download.truncated;
+                // Run bounded classic inline scripts and support simple document.write /
+                // getElementById changes before CSS rendering.
+                std::string scripted;
+                bool jsOK=browserJSPreprocess((const char*)download.bytes,download.url,scripted,&jsExecuted,&jsFailed,webJavaScriptResourceFetch,NULL);
+                const char* markup=jsOK?scripted.c_str():(const char*)download.bytes;
+                webParseHTML(spare,markup,download.url);spare->truncated=spare->truncated||download.truncated;
                 EnterCriticalSection(&guard);if(requestGeneration==generation)strcpy_s(statusText,"Loading website styles and images...");LeaveCriticalSection(&guard);
-                spare->styled=browserStyledCreate((const char*)download.bytes,download.url,webStyledResourceFetch,NULL);
+                spare->styled=browserStyledCreate(markup,download.url,webStyledResourceFetch,NULL);
                 if(spare->styled){spare->height=browserStyledHeight(spare->styled);sprintf_s(message,sizeof(message),"Page CSS: %d loaded, %d failed",browserStyledCSSCount(spare->styled),browserStyledCSSFailed(spare->styled));}
                 else strcpy_s(message,"Using the text reader for this page.");
             }
@@ -220,7 +226,16 @@ static DWORD WINAPI nativeWorker(void*) {
             LeaveCriticalSection(&guard);
         }
         EnterCriticalSection(&guard);
-        if(requestGeneration==generation && success && download.kind==WEB_DOWNLOAD_HTML){int loaded=0;for(int i=0;i<shownDoc->imageCount;++i)if(shownDoc->images[i].pixels)++loaded;sprintf_s(statusText,sizeof(statusText),"Native page  |  %d links  |  Images %d/%d  |  L3: menu",shownDoc->linkCount,loaded,shownDoc->imageCount);}
+        if(requestGeneration==generation && success && download.kind==WEB_DOWNLOAD_HTML){
+            if(shownDoc->styled)
+                sprintf_s(statusText,sizeof(statusText),"CSS %d OK / %d fail | JS %d OK / %d fail | Images %d",
+                    browserStyledCSSCount(shownDoc->styled),browserStyledCSSFailed(shownDoc->styled),
+                    jsExecuted,jsFailed,browserStyledImageCount(shownDoc->styled));
+            else {
+                int loaded=0;for(int i=0;i<shownDoc->imageCount;++i)if(shownDoc->images[i].pixels)++loaded;
+                sprintf_s(statusText,sizeof(statusText),"Text mode | %d links | Images %d/%d",shownDoc->linkCount,loaded,shownDoc->imageCount);
+            }
+        }
         LeaveCriticalSection(&guard);
     }
 }

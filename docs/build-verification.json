@@ -1,10 +1,10 @@
 {
-  "version": "0.7.0-css-network-preview",
+  "version": "0.8.0-js-layout-preview",
   "configuration": "Release | Xbox 360",
   "format": "XEX2",
   "binary": "Release/default.xex",
-  "bytes": 10858496,
-  "sha256": "7bdfe1eec20b637e5ed3b7a814cf92b32eb006f97c288aaa102ec2c80b115a88",
+  "bytes": 11186176,
+  "sha256": "a4a430bfcbe295c85d0268409ae2e7a179c55b4c7af5d3668e657c66b8fbb60d",
   "physical_console_test": "not performed for 0.6; 0.5 reported failing by owner",
   "home": "native shortcuts: Google, X360HUB, Wikipedia, example.com",
   "search": "Google default for all text queries",
@@ -14,9 +14,11 @@
   "javascript": "NOT IMPLEMENTED: no browser DOM/JS runtime",
   "mp4_h264": "not implemented",
   "host_tests": "native host, layout/media fixture and HTTPS search/image/CSS checks passed",
-  "native_console": "not tested after 0.6; physical-console owner reported CSS/responsive/load issues",
+  "native_console": "NOT TESTED for 0.8; owner reported problems in earlier physical-console builds",
   "network": "TLS1.2 BearSSL, HTTP/1.1, gzip/deflate via zlib 1.3.1, resource-specific Accept headers",
-  "mp4": "NOT IMPLEMENTED: existing native direct WMV/XMV only",
-  "host_test": "passed (including gzip/deflate fixture)",
-  "live_site_test": "X360HUB: HTML OK, CSS 1, CSS failures 0, CSS-colored host pixels verified; host only"
+  "mp4": "NOT IMPLEMENTED. WMV/XMV player remains experimental.",
+  "host_test": "host tests passed: actual JS, basic DOM, external fixture, infinite-loop timeout, gzip, CSS and layout pixels",
+  "live_site_test": "Windows host: X360HUB HTML OK/CSS 1 OK, JavaScript 0 executed/2 SyntaxErrors",
+  "js": "Duktape 2.7 executes bounded inline and 3 same-origin external scripts, minimal document.write/id setters, no full DOM/modern JS",
+  "flex_grid": "Float-based horizontal flex and 2-4 column grid fallbacks; not full standards"
 }

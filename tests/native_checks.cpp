@@ -6,6 +6,7 @@
 #include "native_net.h"
 static void errorMessage(char* output,size_t capacity,DWORD error){sprintf_s(output,capacity,"Native request failed (%lu)",error);}
 #include "native_fetch.h"
+#include "web_js.h"
 static WebDocument document;
 static uint32_t screen[1280*720];
 static void save(const char* path) {
@@ -45,6 +46,33 @@ static void checks() {
     view.video=true;nativeRender(&canvas,&view);assert(screen[0]==0 && screen[690*1280+1190]!=0);view.video=false;
     printf("PASS: toolbar inactivity, menu hit testing, icon rendering and watermark visibility.\n");
     printf("PASS: native URL/search handling, entity decoding, hidden scripts/styles, clickable links and shared UI rendering.\n");
+}
+static bool jsFixtureFetch(void*,const char* url,unsigned char** bytes,int* count,char* finalURL,int capacity){
+    if(!strstr(url,"/app.js"))return false;
+    const char* src="document.getElementById('target').innerHTML='<b>external JS</b>';";
+    *count=(int)strlen(src);
+    *bytes=(unsigned char*)malloc(*count+1);
+    if(!*bytes)return false;
+    memcpy(*bytes,src,*count+1);
+    strncpy_s(finalURL,capacity,url,_TRUNCATE);
+    return true;
+}
+static void jsChecks(){
+    std::string output;int ran=0,failed=0;
+    const char* html="<html><body><div id='target'>OLD</div><script>"
+       "var a=20+22;document.getElementById('target').textContent=String(a);"
+       "document.write('<p id=\"generated\">JavaScript worked</p>');"
+       "</script></body></html>";
+    assert(browserJSPreprocess(html,"https://example.com/",output,&ran,&failed));
+    assert(ran==1&&failed==0);
+    assert(output.find(">42</div>")!=std::string::npos);
+    assert(output.find("JavaScript worked")!=std::string::npos);
+    assert(browserJSPreprocess("<html><body><div id='target'>OLD</div><script src='/app.js'></script></body></html>","https://example.com/",output,&ran,&failed,jsFixtureFetch,NULL));
+    assert(ran==1&&failed==0&&output.find("<b>external JS</b>")!=std::string::npos);
+    DWORD started=GetTickCount();
+    assert(browserJSPreprocess("<html><body><script>while(true){}</script></body></html>","https://example.com/",output,&ran,&failed));
+    assert(failed>=1 && GetTickCount()-started<2500);
+    printf("PASS: actual Duktape JavaScript, basic DOM changes and bounded infinite-loop timeout.\n");
 }
 static void compressedFixtures(){
     const char* files[]={"tests/fixtures/encoded-gzip.bin","tests/fixtures/encoded-deflate.bin"};
@@ -106,6 +134,17 @@ static void networkRealCSSCheck(const char* url,const char* name){
     if(page){xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);browserStyledDraw(page,&canvas,0,0,1280,720,0);printf("RENDER %s: pixel(4,4)=%06X pixel(640,400)=%06X\n",name,screen[4*1280+4]&0xffffff,screen[400*1280+640]&0xffffff);save("obj/x360hub-real.ppm");browserStyledDestroy(page);}
     free(dl.bytes);
 }
+static void networkJSCheck(){
+    WebDownload html={0};char message[192]="";
+    DWORD start=GetTickCount();webNetState.cancel=0;
+    if(webDownload("https://x360hub.vercel.app/",&html,message,sizeof(message))){
+        std::string output;int ran=0,failed=0;
+        browserJSPreprocess((const char*)html.bytes,html.url,output,&ran,&failed,webJavaScriptResourceFetch,NULL);
+        printf("NETWORK X360HUB JavaScript: executed=%d errors=%d ms=%lu bytes=%lu\n",
+            ran,failed,GetTickCount()-start,(DWORD)output.size());
+    }else printf("NETWORK X360HUB JavaScript: HTML unavailable: %s\n",message);
+    free(html.bytes);
+}
 static void networkImageCheck() {
     WebDownload image={0};char message[192]="";webNetState.cancel=0;
     const char* url="https://raw.githubusercontent.com/heltindev/X360Browser/main/tests/fixtures/colors.png";
@@ -125,10 +164,11 @@ static void networkStyledCheck(){
 int main(int argc,char**) {
     setvbuf(stdout,NULL,_IONBF,0);
     checks();
+    jsChecks();
     compressedFixtures();
     mediaChecks();
     cacheChecks();
     styledChecks();
-    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();networkRealCSSCheck("https://x360hub.vercel.app/","X360HUB");WSACleanup();}
+    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();networkRealCSSCheck("https://x360hub.vercel.app/","X360HUB");networkJSCheck();WSACleanup();}
     return 0;
 }
