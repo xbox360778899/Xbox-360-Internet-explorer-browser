@@ -64,3 +64,7 @@ Open example.com, then X360HUB. Record final CSS N OK/N failed and JS N OK/N fai
 - On the Windows host, native_checks.cpp verifies DOMContentLoaded/load, detached DOM element creation and nested appendChild. The rendered pixel screenshot is docs/dom-ready-native-render-host.png.
 - Re-run the same XEX build using the PowerPC XDK, then test on real Xbox hardware. Compile success does not verify execution on the console.
 - Google result pages have not passed. See docs/GOOGLE_NATIVE_ENGINE.md for precise blockers and mandatory Google-only acceptance tests. Do not substitute the Bing fallback for a Google results pass.
+
+## Strict native Google Search acceptance (not passing yet)
+
+Run `python tools/verify_google_results.py` from the project directory. It must return at least three real Google organic result titles and source links from the official Google HTTP response. On 2026-11-01 the server returned an HTML JavaScript-required interstitial instead; the command correctly printed FAIL. Passing with Bing, a screenshot, fake links, a substituted provider or a desktop proxy is not acceptable. This host-only check is a preliminary gate; the final gate also requires physical Xbox 360 rendering and navigation. See [docs/QUICKJS_XDK_PORT_DIAGNOSTIC.md](docs/QUICKJS_XDK_PORT_DIAGNOSTIC.md).

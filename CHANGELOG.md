@@ -1,5 +1,12 @@
 # Changelog
 
+## Technical investigation — native Google Search / QuickJS (2026-11-01)
+
+- Tested a minimal QuickJSpp PowerPC-XDK probe with a modern-JS expression; the MSVC 2010 C/C++ toolchain could not compile it. This is not integrated into the release XEX.
+- Added a strict live Google Search acceptance check that refuses to consider Google JavaScript-required interstitials, Bing results or UI mockups as successful Google results.
+- Added documented compiler errors and real-engine acceptance criteria in docs/QUICKJS_XDK_PORT_DIAGNOSTIC.md.
+- **Google Search is still unsupported.** No replacement JS engine or Google results fix is claimed.
+
 ## 0.10.0-dom-foundation-preview - 2026-11-01
 
 - Add an on-Xbox DOM bootstrap to the existing bounded Duktape interpreter: createElement, setAttribute, DOM node text/HTML, detached appendChild, insertion into live parent IDs and document.body.

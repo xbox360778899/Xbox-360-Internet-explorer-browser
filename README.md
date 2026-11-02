@@ -1,5 +1,7 @@
 # X360Browser
 
+**Google Search status: NOT WORKING in the native XEX.** A standalone PowerPC QuickJS port probe failed under XDK 2010 (C and C++ attempts). Google still serves a JavaScript-required response with no actual results. See [the tested QuickJS/XDK blockers](docs/QUICKJS_XDK_PORT_DIAGNOSTIC.md) and run `python tools/verify_google_results.py` to reproduce the strict Google-only test. The Bing alternative is separately labeled and is not a fix for Google.
+
 ## 0.10.0-dom-foundation-preview - 2026-11-01
 
 **The real Google Search results are still NOT working on Xbox.** This release is an incremental native DOM foundation, not a Chrome/Edge port. Google returned ~93 KB of JavaScript-required HTML without result links. A Lynx User-Agent returned a ~2.4 KB "upgrade browser" screen, also without results. No User-Agent trick has been shown to yield real Google results. The 0.9.2 opt-in Bing fallback is retained as a distinct provider; it is not Google.
