@@ -8,6 +8,7 @@ static void errorMessage(char* output,size_t capacity,DWORD error){sprintf_s(out
 #include "native_fetch.h"
 #include "web_js.h"
 #include "web_compat.h"
+#include "google_home.h"
 static WebDocument document;
 static uint32_t screen[1280*720];
 static void save(const char* path) {
@@ -19,6 +20,10 @@ static void checks() {
     char url[WEB_URL];
     assert(webSearchOrURL("Xbox 360",url,sizeof(url)) && !strcmp(url,"https://www.google.com/search?q=Xbox%20360"));
     assert(webSearchOrURL("xbox 360",url,sizeof(url),true) && webPrefix(url,"https://www.google.com/search?q="));
+    assert(webSearchOrURL("x360hub.com",url,sizeof(url),true) && !strcmp(url,"https://www.google.com/search?q=x360hub%2Ecom"));
+    assert(browserGoogleHomeURL("https://www.google.com/"));
+    assert(!browserGoogleHomeURL("https://www.google.com/search?q=test"));
+    std::string invalidGoogle;assert(!browserGooglePrepareHTML("https://www.google.com/","<html>not Google</html>",invalidGoogle));
     assert(webResolveURL("https://example.com/a/b","/test?q=1",url,sizeof(url)) && !strcmp(url,"https://example.com/test?q=1"));
     assert(webResolveURL("https://example.com/a/b","next",url,sizeof(url)) && !strcmp(url,"https://example.com/a/next"));
     assert(webResolveURL("https://example.com/styles/main.css","../images/a.png",url,sizeof(url)) && !strcmp(url,"https://example.com/images/a.png"));
@@ -161,6 +166,45 @@ static void networkRealCSSCheck(const char* url,const char* name){
     if(page){xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);browserStyledDraw(page,&canvas,0,0,1280,720,0);printf("RENDER %s: pixel(4,4)=%06X pixel(640,400)=%06X\n",name,screen[4*1280+4]&0xffffff,screen[400*1280+640]&0xffffff);save("obj/x360hub-real.ppm");browserStyledDestroy(page);}
     free(dl.bytes);
 }
+static void networkGoogleHomepageCheck(){
+    webNetState.cancel=0;WebDownload page={0};char err[192]="";
+    DWORD start=GetTickCount();
+    bool ok=webDownload("https://www.google.com/",&page,err,sizeof(err));
+    std::string realGoogle;
+    bool transformed=ok && browserGooglePrepareHTML(page.url,(const char*)page.bytes,realGoogle);
+    void* styled=transformed?browserStyledCreate(realGoogle.c_str(),page.url,webStyledResourceFetch,NULL):NULL;
+    int imageRequests=0,loaded=0;char firstImage[WEB_URL]="";
+    if(styled){
+        char asset[WEB_URL]="";
+        if(browserStyledNextImage(styled,asset,sizeof(asset))){
+            ++imageRequests;strcpy_s(firstImage,asset);
+            WebDownload picture={0};char msg[192]="";
+            if(webDownload(asset,&picture,msg,sizeof(msg),true)){
+                browserStyledCompleteImage(styled,asset,picture.bytes,(int)picture.size);
+                loaded=browserStyledImageCount(styled);
+            }else printf("Google image download failed: %s\n",msg);
+            free(picture.bytes);
+        }
+        xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);
+        webParseHTML(&document,realGoogle.c_str(),page.url);
+        document.styled=styled;
+        NativeView v={false,false,false,4,640,325,0,page.url,"Google homepage loaded live",&document,false,false,0,false};
+        assert(lgGoogleSearchHit(&v,640,305));
+        assert(!lgGoogleSearchHit(&v,640,180));
+        nativeRender(&canvas,&v);save("obj/google-homepage-live.ppm");
+        v.chrome=true;v.cursorY=385;
+        assert(lgGoogleSearchHit(&v,640,385));
+        assert(!lgGoogleSearchHit(&v,640,300));
+        nativeRender(&canvas,&v);save("obj/google-homepage-with-toolbar.ppm");
+        document.styled=NULL;
+    }
+    printf("NETWORK GOOGLE HOME: HTML=%s bytes=%lu styled=%d CSS=%d/%d height=%d images=%d/%d first=%s ms=%lu %s\n",
+     ok?"OK":"FAIL",page.size,styled!=NULL,browserStyledCSSCount(styled),browserStyledCSSFailed(styled),
+     browserStyledHeight(styled),loaded,imageRequests,firstImage,GetTickCount()-start,err);
+    if(!ok || !transformed || !styled || loaded!=1){fprintf(stderr,"FAIL: Google live homepage/logo rendering failed.\n");exit(7);}
+    if(styled)browserStyledDestroy(styled);
+    free(page.bytes);
+}
 static void networkLiveCatalogCheck(){
     webNetState.cancel=0;WebDownload feed={0};char message[192]="";
     DWORD start=GetTickCount();
@@ -225,6 +269,6 @@ int main(int argc,char**) {
     mediaChecks();
     cacheChecks();
     styledChecks();
-    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();networkRealCSSCheck("https://x360hub.vercel.app/","X360HUB");networkJSCheck();networkLiveCatalogCheck();WSACleanup();}
+    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();networkRealCSSCheck("https://x360hub.vercel.app/","X360HUB");networkJSCheck();networkGoogleHomepageCheck();networkLiveCatalogCheck();WSACleanup();}
     return 0;
 }

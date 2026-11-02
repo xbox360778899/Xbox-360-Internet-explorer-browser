@@ -1,4 +1,4 @@
-// X360Browser 0.9.0-live-catalog-preview: native HTML/CSS, media and green browser chrome. GPL-3.0.
+// X360Browser 0.9.1-google-live-home-preview: native HTML/CSS, media and green browser chrome. GPL-3.0.
 #include <xtl.h>
 #include <winsockx.h>
 #include <d3d9.h>
@@ -158,6 +158,7 @@ static void errorMessage(char* output,size_t capacity,DWORD error) {
 #include "native_fetch.h"
 #include "web_js.h"
 #include "web_compat.h"
+#include "google_home.h"
 static DWORD WINAPI nativeWorker(void*) {
     WebDocument* spare=(WebDocument*)calloc(1,sizeof(WebDocument));
     if(!spare)return 1;
@@ -201,7 +202,11 @@ static DWORD WINAPI nativeWorker(void*) {
                 // Run bounded classic inline scripts and support simple document.write /
                 // getElementById changes before CSS rendering.
                 std::string scripted;
-                bool jsOK=browserJSPreprocess((const char*)download.bytes,download.url,scripted,&jsExecuted,&jsFailed,webJavaScriptResourceFetch,NULL);
+                // Google sends its real legacy homepage including logo, links, CSS
+                // and form HTML. Avoid executing modern scripts that the ES5
+                // bridge cannot support; paint the form using native Xbox input.
+                bool googleHome=browserGooglePrepareHTML(download.url,(const char*)download.bytes,scripted);
+                bool jsOK=googleHome || browserJSPreprocess((const char*)download.bytes,download.url,scripted,&jsExecuted,&jsFailed,webJavaScriptResourceFetch,NULL);
                 const char* markup=jsOK?scripted.c_str():(const char*)download.bytes;
                 webParseHTML(spare,markup,download.url);spare->truncated=spare->truncated||download.truncated;
                 EnterCriticalSection(&guard);if(requestGeneration==generation)strcpy_s(statusText,"Loading website styles and images...");LeaveCriticalSection(&guard);
@@ -282,6 +287,10 @@ static void click() {
         const char* urls[]={"https://www.google.com/","https://x360hub.vercel.app/","https://en.wikipedia.org/wiki/Main_Page","https://example.com/"};
         if(hit==0)openKeyboard();else if(hit>=1 && hit<=4)navigate(urls[hit-1]);else if(hit==5)navigate("browser:help");
     } else {
+        NativeView googleView=makeView();
+        if(lgGoogleSearchHit(&googleView,(int)mouseX,(int)mouseY)){
+            openKeyboard(true);return;
+        }
         EnterCriticalSection(&guard);
         NativeView view=makeView();
         int link=-1;char url[WEB_URL]="";

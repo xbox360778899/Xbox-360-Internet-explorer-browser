@@ -2,16 +2,37 @@
 #pragma once
 #include "browser_ui.h"
 #include "native_document.h"
+#include "google_home.h"
 #include "cursor_icon.h"
 #ifndef X360BROWSER_PRERELEASE
 #define X360BROWSER_PRERELEASE 1
 #endif
 struct NativeView {bool home,loading,toolbar;int selected,cursorX,cursorY,scroll;const char* url;const char* status;const WebDocument* doc;bool chrome,menu;int menuSelected;bool video;const char* perf;bool tabsOpen;int tabCount,activeTab;const char* tabUrls[4];};
 static bool lgChromeVisible(unsigned now,unsigned last,bool menu,bool keyboard,bool loading){return menu||keyboard||loading||(unsigned)(now-last)<4500;}
+static int lgGoogleFormShift(const NativeView* v){return v && v->chrome?76:0;}
+static bool lgGoogleSearchHit(const NativeView* v,int x,int y){
+    if(!v || v->home || !v->doc || !v->doc->styled || !browserGoogleHomeURL(v->url))return false;
+    int offset=lgGoogleFormShift(v);
+    return x>=328 && x<=952 && y>=272+offset && y<=408+offset;
+}
+static void lgGoogleSearchOverlay(xui_canvas_t* c,const NativeView* view){
+    if(!view->doc || !view->doc->styled || !browserGoogleHomeURL(view->url))return;
+    // The live Google HTML/CSS/logo/links stay beneath this native search form.
+    int offset=lgGoogleFormShift(view);
+    bool hover=lgGoogleSearchHit(view,view->cursorX,view->cursorY);
+    bool hoverButton=hover && view->cursorY>=354+offset;
+    xui_round_rect(c,328,274+offset,624,60,28,0xffffff,255);
+    xui_round_frame(c,328,274+offset,624,60,28,hover?3:2,hover?0x4285f4:0xdadce0);
+    xui_mask(c,&shell_search,350,291+offset,0x60666d,255);
+    browserText(c,XUI_F_BODY,398,293+offset,"Pesquisar no Google",0x5f6368,500);
+    xui_round_rect(c,503,354+offset,274,47,7,hoverButton?0xe6f0ff:0xf8f9fa,255);
+    browserCentered(c,XUI_F_BODY,503,354+offset,274,47,"Pesquisa Google",0x202124);
+}
 static int lgPageTop(const NativeView* view){return view->chrome?76:0;}
 static int nativeHitLink(const NativeView* view) {
     if(!view->doc || view->home || view->cursorX<0 || view->cursorX>=1280 || view->cursorY<lgPageTop(view) || view->cursorY>=720)return -1;
     int y=view->cursorY-lgPageTop(view)+view->scroll;
+    if(lgGoogleSearchHit(view,view->cursorX,view->cursorY))return 0;
     if(view->doc->styled)return browserStyledHover(view->doc->styled,view->cursorX,y)?0:-1;
     for(int i=0;i<view->doc->count;++i){const WebLine* row=&view->doc->lines[i];int width=row->kind==WEB_TEXT_ROW?xui_text_width(row->font,row->text,0):1100;if(row->link>=0 && y>=row->y && y<row->y+row->height && view->cursorX<72+width)return row->link;}
     return -1;
@@ -86,6 +107,7 @@ static void nativeRender(xui_canvas_t* c,const NativeView* view) {
         xui_clip_all(c);
     }
     // A full-screen dimmer signals navigation while keeping the prior page visible.
+    if(!view->home && view->doc && view->doc->styled)lgGoogleSearchOverlay(c,view);
     if(!view->home && view->doc && view->doc->styled && browserStyledCSSFailed(view->doc->styled)>0){
         char diagnostic[120];sprintf_s(diagnostic,sizeof(diagnostic),"CSS: %d loaded, %d failed - some layouts may differ",browserStyledCSSCount(view->doc->styled),browserStyledCSSFailed(view->doc->styled));
         xui_round_rect(c,22,80,720,31,4,0x48361e,235);browserText(c,XUI_F_LABEL,32,86,diagnostic,0xffe6bc,696);

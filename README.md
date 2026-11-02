@@ -1,5 +1,14 @@
 # X360Browser
 
+## 0.9.1-google-live-home-preview - Google homepage (2026-11-01)
+
+**The Google homepage is fetched live** through console-native HTTPS from https://www.google.com/ and rendered from Google's actual HTML, inline CSS, image and links (not a screenshot or locally mocked homepage). The renderer lacked CSS behavior for the legacy HTML center tag: a tiny Google-only compatibility stylesheet now centers the real downloaded Google logo. Because litehtml does not implement functional HTML input fields, the search box and button are native Xbox controls drawn over the actual page and are clickable with the gamepad pointer. Activating either opens the console's on-screen keyboard and sends an escaped query to Google's real search URL. Google search treats dotted terms such as x360hub.com as search text rather than a direct address. The field/button remains aligned when the webOS-inspired top toolbar automatically hides.
+
+[Windows-host preview showing the actual fetched Google homepage](docs/google-homepage-with-toolbar-host.png).
+
+Windows-host tests: HTTPS page returns HTTP 200 with around 88 KB of real HTML, CSS 1 loaded, 0 failed, Google-provided wordmark image 1 loaded, native search hitbox verified with toolbar both shown and hidden. The Xbox 360 PowerPC XEX compiles using the SDK. Physical-console testing remains **unverified**; full modern Google Search results DOM, login, autocomplete, modern JS frameworks, YouTube and MP4 remain unsupported or incomplete. An interactive native textbox does not mean a complete implementation of the Google website.
+
+
 ## 0.9.0-live-catalog-preview - 2026-11-01
 
 Physical-console warning: this is **not** an Edge/Chrome-equivalent web browser. The legacy litehtml + Duktape architecture cannot render arbitrary modern JavaScript single-page applications or play MP4/H.264. This revision provides a dedicated **live catalog compatibility view** for the JS-generated X360HUB ports.html page. It fetches the public https://x360hub.vercel.app/data/catalog.json directly on the console through HTTPS. No PC proxy, screenshot relay, or mocked data. It displays eight published entries per page, descriptions, horizontal cover URLs, and original download/repository links.

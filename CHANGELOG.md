@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.1-google-live-home-preview - 2026-11-01
+
+- Load the real https://www.google.com/ HTML and official Google wordmark over native console HTTPS. No bitmap-only page, local mock or PC relay.
+- Add a Google-only CSS compatibility shim to center Google's actual legacy HTML logo in litehtml v0.3.
+- Overlay a functional native Xbox search form on the real Google page because litehtml cannot draw usable HTML input controls; controller A opens console keyboard.
+- Native Google search now treats dotted search terms as queries; search URL is Google, not an intermediary.
+- Position the native search field in sync with the automatically retracting toolbar.
+- Add live-network host regression test for actual Google HTML, CSS, image, native hitbox and rendered preview.
+- Physical Xbox console test still pending. Google login, autocomplete, current Google JS, full results interactivity and MP4 are not supported.
+
+
 ## 0.9.0-live-catalog-preview - 2026-11-01
 
 - Identify X360HUB's JS-generated ports.html catalog as an initially empty modern JS shell.

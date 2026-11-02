@@ -74,7 +74,7 @@ static bool webResolveURL(const char* base,const char* reference,char* output,si
 static bool webSearchOrURL(const char* input,char* output,size_t capacity,bool google=false) {
     if(webEqual(input,"browser:home")||webEqual(input,"browser:help"))return webCopy(output,capacity,input);
     if(webPrefix(input,"https://") || webPrefix(input,"http://"))return webResolveURL("https://www.bing.com/",input,output,capacity);
-    if(strchr(input,'.') && !strchr(input,' ') && !strchr(input,':')) {
+    if(!google && strchr(input,'.') && !strchr(input,' ') && !strchr(input,':')) {
         char temp[WEB_URL];if(strlen(input)+9>=sizeof(temp))return false;sprintf(temp,"https://%s",input);return webResolveURL(temp,temp,output,capacity);
     }
     const char* origin="https://www.google.com/search?q="; // Google is the only default search provider.

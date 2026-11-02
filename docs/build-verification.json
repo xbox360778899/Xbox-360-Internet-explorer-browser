@@ -1,10 +1,10 @@
 {
-  "version": "0.9.0-live-catalog-preview",
+  "version": "0.9.1-google-live-home-preview",
   "configuration": "Release | Xbox 360",
   "format": "XEX2",
   "binary": "Release/default.xex",
   "bytes": 11218944,
-  "sha256": "9a7c05ad00cfec1606d1ec95523a72f1ef345b630b8bce19d4b460e6cb377a71",
+  "sha256": "b857fd9ecd546ffcd953616d290d9521741625822baf5e29c2ed1f2b15dfa430",
   "physical_console_test": "not performed for 0.6; 0.5 reported failing by owner",
   "home": "native shortcuts: Google, X360HUB, Wikipedia, example.com",
   "search": "Google default for all text queries",
@@ -14,12 +14,15 @@
   "javascript": "Duktape 2.7 limited ES5 DOM, not modern JS compatible",
   "mp4_h264": "not implemented",
   "host_tests": "native host, layout/media fixture and HTTPS search/image/CSS checks passed",
-  "native_console": "not yet retested after owner reported older builds failing",
+  "native_console": "NOT TESTED on physical Xbox 360 for version 0.9.1",
   "network": "TLS1.2 BearSSL, HTTP/1.1, gzip/deflate via zlib 1.3.1, resource-specific Accept headers",
   "mp4": "NOT IMPLEMENTED",
   "host_test": "host tests passed: actual JS, basic DOM, external fixture, infinite-loop timeout, gzip, CSS and layout pixels",
   "live_site_test": "Windows host: X360HUB HTML OK/CSS 1 OK, JavaScript 0 executed/2 SyntaxErrors",
   "js": "Duktape 2.7 executes bounded inline and 3 same-origin external scripts, minimal document.write/id setters, no full DOM/modern JS",
   "flex_grid": "Float-based horizontal flex and 2-4 column grid fallbacks; not full standards",
-  "live_catalog": "Host live network: 85 real X360HUB projects loaded from data/catalog.json, styled page with 1 loaded cover, native XDK build passing; requires console hardware retest"
+  "live_catalog": "Host live network: 85 real X360HUB projects loaded from data/catalog.json, styled page with 1 loaded cover, native XDK build passing; requires console hardware retest",
+  "google_home": "Windows native host loaded live Google HTML HTTP 200 (~88 KB), inline CSS loaded=1 failed=0, official Google logo image loaded=1, screenshot verified with Xbox native toolbar",
+  "google_form": "Gamepad pointer search field delegates to XShowKeyboardUI and real Google search URL; supports retracting toolbar and dotted query search",
+  "google_modern_js": "incomplete: full Google JS, autocomplete and dynamic results are not implemented"
 }

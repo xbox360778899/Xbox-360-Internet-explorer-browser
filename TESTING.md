@@ -41,3 +41,11 @@ Open example.com, then X360HUB. Record final CSS N OK/N failed and JS N OK/N fai
 4. Use Next page and Previous page; the live feed is divided into groups of eight.
 5. If this still fails, note the exact URL, on-screen network status and screenshot. The build/host-network tests alone cannot certify the physical console.
 6. JavaScript-heavy unrelated sites and MP4/H.264 remain unsupported; do not record those as working.
+
+## Google homepage - 0.9.1 Xbox hardware test
+
+1. Copy Release/default.xex to the RGH/JTAG console, open from Aurora, and select Google on the native X360Browser home screen.
+2. The page must download the official Google HTML, CSS, logo and links via console HTTPS. The colorful 272x92 Google wordmark should be centered. This is NOT a screenshot of Google.
+3. Click the native outlined Google search field with A, type text on the Xbox keyboard and submit. Verify it navigates to https://www.google.com/search?q=YOUR_QUERY. A dotted query such as x360hub.com must remain a Google query.
+4. Wait for the toolbar to retract, then click the same search field and ensure the hitbox moves with the displayed form. Try both toolbar states.
+5. Report the console's actual result (screenshot/error and URL). Passing the Windows-host test does not mean the physical Xbox passed. Modern Google search result pages may still be incomplete because the litehtml + Duktape browser engine is not Chrome.
