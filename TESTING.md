@@ -32,3 +32,12 @@ Physical USB mouse support is not implemented; the mouse pointer uses the gamepa
 ## Hardware regression tests for 0.8
 
 Open example.com, then X360HUB. Record final CSS N OK/N failed and JS N OK/N failed stats. Test a local basic script with document.write to confirm JS renders on Xbox. Compare horizontal flex rows and grid card positions. MP4/YouTube remains unsupported. A host test is not a hardware pass.
+
+## 0.9 live X360HUB catalog: required Xbox 360 test
+
+1. Replace the previous default.xex with Release/default.xex and launch from Aurora.
+2. Open the native X360HUB shortcut and select Explore catalog (ports.html).
+3. A labeled native compatibility catalog should display the published titles, horizontal covers, and original source/download links fetched from data/catalog.json over native HTTPS.
+4. Use Next page and Previous page; the live feed is divided into groups of eight.
+5. If this still fails, note the exact URL, on-screen network status and screenshot. The build/host-network tests alone cannot certify the physical console.
+6. JavaScript-heavy unrelated sites and MP4/H.264 remain unsupported; do not record those as working.

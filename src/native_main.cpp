@@ -1,4 +1,4 @@
-// X360Browser 0.8.0-js-layout-preview: native HTML/CSS, media and green browser chrome. GPL-3.0.
+// X360Browser 0.9.0-live-catalog-preview: native HTML/CSS, media and green browser chrome. GPL-3.0.
 #include <xtl.h>
 #include <winsockx.h>
 #include <d3d9.h>
@@ -157,6 +157,7 @@ static void errorMessage(char* output,size_t capacity,DWORD error) {
 }
 #include "native_fetch.h"
 #include "web_js.h"
+#include "web_compat.h"
 static DWORD WINAPI nativeWorker(void*) {
     WebDocument* spare=(WebDocument*)calloc(1,sizeof(WebDocument));
     if(!spare)return 1;
@@ -166,10 +167,24 @@ static DWORD WINAPI nativeWorker(void*) {
         if(!url[0]){Sleep(30);continue;}
         InterlockedExchange(&webNetState.cancel,0);webNetState.httpCode=webNetState.tlsError=webNetState.socketError=0;
         webReleaseImages(spare);memset(spare,0,sizeof(*spare));
-        WebDownload download={0};char message[192]="";bool success=false;int jsExecuted=0,jsFailed=0;
+        WebDownload download={0};char message[192]="";bool success=false,nativeCompatibility=false;int jsExecuted=0,jsFailed=0;
         if(webEqual(url,"browser:help")) {
             const char* help="<h1>Images and video</h1><p>JPEG, PNG, BMP and the first frame of GIF images are decoded by the console.</p><p>Open a direct WMV/XMV video link. The file is buffered in RAM before playback. Maximum size: 64 MB.</p><p>A pauses/resumes video. B stops playback. The toolbar hides after 4.5 seconds without input.</p><p>MP4/H.264, HLS/DASH, DRM, YouTube and JavaScript video players are not supported by this build.</p><p>All networking and rendering runs on the Xbox. Physical console media testing remains pending.</p>";
             webParseHTML(spare,help,url);success=true;strcpy_s(message,"Native media guide");
+        } else if(browserCompatCatalogURL(url)) {
+            // The upstream SPA catalog is initially empty without its modern JS.
+            // Read the actual published catalog JSON directly, on the console.
+            WebDownload feed={0};char problem[192]="";int count=0;
+            std::string catalogHTML;
+            bool feedOK=webDownload("https://x360hub.vercel.app/data/catalog.json",&feed,problem,sizeof(problem),false,true,5500);
+            if(feedOK && browserCompatRenderCatalog(url,(const char*)feed.bytes,(int)feed.size,catalogHTML,&count)) {
+                webParseHTML(spare,catalogHTML.c_str(),url);
+                spare->styled=browserStyledCreate(catalogHTML.c_str(),url,webStyledResourceFetch,NULL);
+                if(spare->styled){spare->height=browserStyledHeight(spare->styled);success=true;nativeCompatibility=true;
+                    sprintf_s(message,sizeof(message),"Live X360HUB catalog: %d projects | Native compatibility view",count);}
+            }
+            free(feed.bytes);
+            if(!success) success=webDownload(url,&download,message,sizeof(message));
         } else success=webDownload(url,&download,message,sizeof(message));
         if(success && download.bytes) {
             if(download.kind==WEB_DOWNLOAD_IMAGE) {
@@ -212,7 +227,8 @@ static DWORD WINAPI nativeWorker(void*) {
             if(requestGeneration==generation&&published==shownDoc){
                 browserStyledCompleteImage(published->styled,asset,ok?picture.bytes:NULL,ok?(int)picture.size:0);
                 published->height=browserStyledHeight(published->styled);
-                sprintf_s(statusText,sizeof(statusText),"CSS %d loaded / %d failed | Images %d",browserStyledCSSCount(published->styled),browserStyledCSSFailed(published->styled),browserStyledImageCount(published->styled));
+                if(nativeCompatibility)sprintf_s(statusText,sizeof(statusText),"X360HUB live catalog | Covers loaded: %d",browserStyledImageCount(published->styled));
+                else sprintf_s(statusText,sizeof(statusText),"CSS %d loaded / %d failed | Images %d",browserStyledCSSCount(published->styled),browserStyledCSSFailed(published->styled),browserStyledImageCount(published->styled));
             }
             LeaveCriticalSection(&guard);free(picture.bytes);
         }
@@ -226,7 +242,7 @@ static DWORD WINAPI nativeWorker(void*) {
             LeaveCriticalSection(&guard);
         }
         EnterCriticalSection(&guard);
-        if(requestGeneration==generation && success && download.kind==WEB_DOWNLOAD_HTML){
+        if(requestGeneration==generation && success && !nativeCompatibility && download.kind==WEB_DOWNLOAD_HTML){
             if(shownDoc->styled)
                 sprintf_s(statusText,sizeof(statusText),"CSS %d OK / %d fail | JS %d OK / %d fail | Images %d",
                     browserStyledCSSCount(shownDoc->styled),browserStyledCSSFailed(shownDoc->styled),

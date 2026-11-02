@@ -7,6 +7,7 @@
 static void errorMessage(char* output,size_t capacity,DWORD error){sprintf_s(output,capacity,"Native request failed (%lu)",error);}
 #include "native_fetch.h"
 #include "web_js.h"
+#include "web_compat.h"
 static WebDocument document;
 static uint32_t screen[1280*720];
 static void save(const char* path) {
@@ -56,6 +57,32 @@ static bool jsFixtureFetch(void*,const char* url,unsigned char** bytes,int* coun
     memcpy(*bytes,src,*count+1);
     strncpy_s(finalURL,capacity,url,_TRUNCATE);
     return true;
+}
+static void compatCatalogChecks(){
+    assert(browserCompatCatalogURL("https://x360hub.vercel.app/ports.html"));
+    assert(browserCompatCatalogURL("https://x360hub.vercel.app/ports.html?x360page=2"));
+    assert(!browserCompatCatalogURL("https://untrusted.example/ports.html"));
+    std::string json="{\"projects\":[";
+    for(int i=0;i<10;++i){
+        char item[320];sprintf_s(item,sizeof(item),
+          "%s{\"title\":\"Sample %d\",\"description\":\"Live & <demo>\",\"category\":\"Game ports\","
+          "\"imageHorizontal\":\"assets/images/test%d.jpg\",\"repositoryUrl\":\"https://github.com/test/repo\"}",
+          i?",":"",i,i);
+        json+=item;
+    }
+    json+="]}";
+    std::string html;int count=0;
+    assert(browserCompatRenderCatalog("https://x360hub.vercel.app/ports.html",json.c_str(),(int)json.size(),html,&count));
+    assert(count==10 && html.find("Sample 0")!=std::string::npos &&
+           html.find("Sample 8")==std::string::npos &&
+           html.find("Live &amp; &lt;demo&gt;")!=std::string::npos &&
+           html.find("x360page=2")!=std::string::npos);
+    void* styled=browserStyledCreate(html.c_str(),"https://x360hub.vercel.app/ports.html",NULL,NULL);
+    assert(styled && browserStyledHeight(styled)>150);browserStyledDestroy(styled);
+    assert(browserCompatRenderCatalog("https://x360hub.vercel.app/ports.html?x360page=2",json.c_str(),(int)json.size(),html,&count));
+    assert(html.find("Sample 8")!=std::string::npos && html.find("Sample 0")==std::string::npos);
+    assert(!browserCompatRenderCatalog("https://x360hub.vercel.app/ports.html","{}",2,html,&count));
+    printf("PASS: actual-site JSON compatibility renderer, escaped text, image links and pagination.\n");
 }
 static void jsChecks(){
     std::string output;int ran=0,failed=0;
@@ -134,6 +161,34 @@ static void networkRealCSSCheck(const char* url,const char* name){
     if(page){xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);browserStyledDraw(page,&canvas,0,0,1280,720,0);printf("RENDER %s: pixel(4,4)=%06X pixel(640,400)=%06X\n",name,screen[4*1280+4]&0xffffff,screen[400*1280+640]&0xffffff);save("obj/x360hub-real.ppm");browserStyledDestroy(page);}
     free(dl.bytes);
 }
+static void networkLiveCatalogCheck(){
+    webNetState.cancel=0;WebDownload feed={0};char message[192]="";
+    DWORD start=GetTickCount();
+    bool ok=webDownload("https://x360hub.vercel.app/data/catalog.json",&feed,message,sizeof(message),false,true,5500);
+    std::string html;int total=0;
+    bool rendered=ok && browserCompatRenderCatalog("https://x360hub.vercel.app/ports.html",
+        (const char*)feed.bytes,(int)feed.size,html,&total);
+    void* page=rendered?browserStyledCreate(html.c_str(),"https://x360hub.vercel.app/ports.html",webStyledResourceFetch,NULL):NULL;
+    int loaded=0;
+    printf("CATALOG markup bytes=%lu imgTag=%ld first=%s\n",(DWORD)html.size(),(long)html.find("<img"),html.substr(0,180).c_str());
+    if(page){
+        char url[WEB_URL]="";if(browserStyledNextImage(page,url,sizeof(url))){
+            WebDownload image={0};char error[192]="";
+            if(webDownload(url,&image,error,sizeof(error),true)){
+                browserStyledCompleteImage(page,url,image.bytes,(int)image.size);
+                loaded=browserStyledImageCount(page);
+            }
+            free(image.bytes);
+        }
+        xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);
+        browserStyledDraw(page,&canvas,0,0,1280,720,0);save("obj/x360hub-live-catalog.ppm");
+        browserStyledDestroy(page);
+    }
+    printf("NETWORK X360HUB live catalog: HTTP=%lu JSON=%s rendered=%s count=%d images=%d ms=%lu %s\n",
+           webNetState.httpCode,ok?"OK":"FAILED",rendered?"OK":"FAILED",total,loaded,GetTickCount()-start,message);
+    if(!rendered || !page || total<8 || loaded<1)exit(6);
+    free(feed.bytes);
+}
 static void networkJSCheck(){
     WebDownload html={0};char message[192]="";
     DWORD start=GetTickCount();webNetState.cancel=0;
@@ -164,11 +219,12 @@ static void networkStyledCheck(){
 int main(int argc,char**) {
     setvbuf(stdout,NULL,_IONBF,0);
     checks();
+    compatCatalogChecks();
     jsChecks();
     compressedFixtures();
     mediaChecks();
     cacheChecks();
     styledChecks();
-    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();networkRealCSSCheck("https://x360hub.vercel.app/","X360HUB");networkJSCheck();WSACleanup();}
+    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();networkRealCSSCheck("https://x360hub.vercel.app/","X360HUB");networkJSCheck();networkLiveCatalogCheck();WSACleanup();}
     return 0;
 }

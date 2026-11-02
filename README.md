@@ -1,5 +1,16 @@
 # X360Browser
 
+## 0.9.0-live-catalog-preview - 2026-11-01
+
+Physical-console warning: this is **not** an Edge/Chrome-equivalent web browser. The legacy litehtml + Duktape architecture cannot render arbitrary modern JavaScript single-page applications or play MP4/H.264. This revision provides a dedicated **live catalog compatibility view** for the JS-generated X360HUB ports.html page. It fetches the public https://x360hub.vercel.app/data/catalog.json directly on the console through HTTPS. No PC proxy, screenshot relay, or mocked data. It displays eight published entries per page, descriptions, horizontal cover URLs, and original download/repository links.
+
+The Xbox SDK Release XEX and Windows host compiled. The real Windows-host network test retrieved 85 current catalog records, rendered HTML and CSS, and loaded a live project cover. The console still needs a physical hardware test. Other sites use the existing limited litehtml/Duktape engine and JavaScript-heavy content may still be incomplete.
+
+**Console test:** open the native X360Browser home, select X360HUB, then Explore catalog. The compatibility page should show the live project's titles and covers with Next/Previous links, using native network access.
+
+![Live catalog host-render preview](docs/x360hub-live-catalog-host.png)
+
+
 ## 0.8.0-js-layout-preview changes
 
 Duktape 2.7.0 now compiles inside the native Xbox PowerPC XEX. It executes bounded ES5-compatible inline scripts and up to three same-origin external scripts. The limited DOM bridge supports document.write, document.getElementById(id).innerHTML/textContent setters and querySelector('#id'). The JavaScript engine uses a 6 MiB heap limit and a 300 ms bytecode execution limit, both tested on the Windows host. It is NOT a full DOM/event/browser API environment, modern ES module loader, or Chrome-compatible runtime.

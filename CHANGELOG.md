@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.0-live-catalog-preview - 2026-11-01
+
+- Identify X360HUB's JS-generated ports.html catalog as an initially empty modern JS shell.
+- Render actual X360HUB live catalog data on device from data/catalog.json via direct native HTTPS.
+- Use Duktape to parse bounded JSON and generate escaped native CSS/HTML cards with original image, source and download URLs.
+- Paginate up to 8 items per page and expose Next/Previous links.
+- Add URL validation, escaping, live JSON/network/image and pagination host tests.
+- Explicitly label the compatibility view. This does NOT enable arbitrary modern websites, complete DOM events, Flexbox/Grid, MP4 or YouTube.
+- Physical Xbox console test remains pending; the previous hardware builds were reported broken.
+
+
 ## 0.8.0-js-layout-preview - 2026-11-01
 
 - Vendor and compile Duktape 2.7 into the Xbox 360 XEX and Windows host test.
