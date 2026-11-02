@@ -58,3 +58,9 @@ Open example.com, then X360HUB. Record final CSS N OK/N failed and JS N OK/N fai
 4. Confirm the result page identifies Bing, includes multiple titles/descriptions and opens individual source links with A. Use triggers/right-stick to scroll.
 5. Press B to return to the Google explanation. Retry Google if desired. If Google someday serves normal HTML results, the generic browser engine will attempt them.
 6. If anything still fails, capture screen/status and exact address, including the console time/date. Tests on the Windows host cannot certify success on physical Xbox hardware. Google login, modern JavaScript results, autocomplete and MP4 remain unsupported.
+
+## 0.10 DOM foundation - hardware and acceptance
+
+- On the Windows host, native_checks.cpp verifies DOMContentLoaded/load, detached DOM element creation and nested appendChild. The rendered pixel screenshot is docs/dom-ready-native-render-host.png.
+- Re-run the same XEX build using the PowerPC XDK, then test on real Xbox hardware. Compile success does not verify execution on the console.
+- Google result pages have not passed. See docs/GOOGLE_NATIVE_ENGINE.md for precise blockers and mandatory Google-only acceptance tests. Do not substitute the Bing fallback for a Google results pass.

@@ -1,5 +1,14 @@
 # X360Browser
 
+## 0.10.0-dom-foundation-preview - 2026-11-01
+
+**The real Google Search results are still NOT working on Xbox.** This release is an incremental native DOM foundation, not a Chrome/Edge port. Google returned ~93 KB of JavaScript-required HTML without result links. A Lynx User-Agent returned a ~2.4 KB "upgrade browser" screen, also without results. No User-Agent trick has been shown to yield real Google results. The 0.9.2 opt-in Bing fallback is retained as a distinct provider; it is not Google.
+
+The XEX's bounded Duktape bridge now supports basic DOM **document.createElement**, safe attributes and text, building nested detached nodes, **appendChild**, **insertAdjacentHTML('beforeend')** and **DOMContentLoaded** / window load callbacks before layout. The Windows-host fixture dynamically constructs an article and footer, triggers both events and paints them via litehtml; PowerPC XEX builds with the same source. This is **not** a complete persistent DOM and does not execute modern ES2022 modules, fetch, browser events, Google Search or MP4. Physical Xbox 360 testing is pending.
+
+See [Google native-engine feasibility and acceptance tests](docs/GOOGLE_NATIVE_ENGINE.md) and [dynamic DOM host render screenshot](docs/dom-ready-native-render-host.png).
+
+
 ## 0.9.2-search-results-visibility-preview - Google white-screen diagnosis (2026-11-01)
 
 **The Google query white-screen is reproduced and explained.** Live requests to https://www.google.com/search?q=Xbox%20360 returned HTTP 200 with ~93 KB but ONLY a JavaScript-required error/interstitial, not the actual results. The response included a no-script stylesheet that hides all divs/p paragraphs in litehtml. Google still needs a modern browser engine/DOM to show its true search results. We do not bypass or misrepresent that requirement.

@@ -137,6 +137,28 @@ static void jsChecks(){
     assert(output.find("JavaScript worked")!=std::string::npos);
     assert(browserJSPreprocess("<html><body><div id='target'>OLD</div><script src='/app.js'></script></body></html>","https://example.com/",output,&ran,&failed,jsFixtureFetch,NULL));
     assert(ran==1&&failed==0&&output.find("<b>external JS</b>")!=std::string::npos);
+    const char* dynamicHTML="<html><body><div id='stage'>Start</div><script>"
+      "document.addEventListener('DOMContentLoaded',function(){"
+      "var card=document.createElement('article');card.setAttribute('class','card');"
+      "var title=document.createElement('h2');title.textContent='DOM initialized';"
+      "card.appendChild(title);document.getElementById('stage').appendChild(card);"
+      "var footer=document.createElement('footer');footer.textContent='Loaded event';"
+      "document.body.appendChild(footer);"
+      "});"
+      "window.addEventListener('load',function(){var n=document.createElement('p');"
+      "n.textContent='Window load callback';document.body.appendChild(n);});"
+      "</script></body></html>";
+    assert(browserJSPreprocess(dynamicHTML,"https://example.com/",output,&ran,&failed));
+    printf("DOM TEST: ran=%d failed=%d markup=%.420s\n",ran,failed,output.c_str());
+    assert(failed==0 && output.find("<article class=\"card\"><h2>DOM initialized</h2></article>")!=std::string::npos);
+    assert(output.find("<footer>Loaded event</footer>")!=std::string::npos);
+    assert(output.find("<p>Window load callback</p>")!=std::string::npos);
+    void* dynamicPage=browserStyledCreate(output.c_str(),"https://example.com/",NULL,NULL);
+    assert(dynamicPage && browserStyledHeight(dynamicPage)>0);
+    xui_canvas_t domCanvas;xui_canvas_init(&domCanvas,screen,1280,720,1280);
+    browserStyledDraw(dynamicPage,&domCanvas,0,0,1280,720,0);
+    save("obj/dom-ready-native-render.ppm");
+    browserStyledDestroy(dynamicPage);
     DWORD started=GetTickCount();
     assert(browserJSPreprocess("<html><body><script>while(true){}</script></body></html>","https://example.com/",output,&ran,&failed));
     assert(failed>=1 && GetTickCount()-started<2500);

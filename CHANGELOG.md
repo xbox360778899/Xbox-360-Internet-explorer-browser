@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.0-dom-foundation-preview - 2026-11-01
+
+- Add an on-Xbox DOM bootstrap to the existing bounded Duktape interpreter: createElement, setAttribute, DOM node text/HTML, detached appendChild, insertion into live parent IDs and document.body.
+- Support DOMContentLoaded and window load callback execution before HTML/CSS rendering.
+- Preserve 6 MiB JS heap, 300 ms bytecode guard, bounded markup and script counts; dynamically generated HTML is rendered by litehtml.
+- Add host fixture for real nested element creation and callbacks; compile PowerPC Xbox XEX.
+- Investigate real Google Search: Chrome/Android/iPhone/X360Browser UA returns JS-required response with zero organic result links; Lynx/text-based UA returns an unsupported browser message. No truthful working Google search implementation yet.
+- Document architectural steps and physical-console acceptance test. The optional Bing provider stays explicitly separate.
+- Still no modern ES2022 engine, browser-complete DOM, Google SERP, full CSS Flexbox/Grid or video decoding.
+
+
 ## 0.9.2-search-results-visibility-preview - 2026-11-01
 
 - Reproduce real Google search blank screen: Google serves JS-required interstitial without server-rendered search results, including a no-script CSS hide rule.

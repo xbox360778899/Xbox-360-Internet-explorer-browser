@@ -234,7 +234,7 @@ static HubTLSRequest* hubNetOpen(const char* url,DWORD* status,DWORD timeoutMs=1
   r->socket=INVALID_SOCKET;r->maxIdleMs=timeoutMs;location[0]=0;
   bool ok=hubNetConnect(r,host);
   if(ok){
-   char request[8704];sprintf_s(request,sizeof(request),"GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: X360Browser/0.9.2 (Xbox 360; NativeBrowser)\r\nAccept: %s\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.8\r\nConnection: close\r\n\r\n",path,host,accept);
+   char request[8704];sprintf_s(request,sizeof(request),"GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: X360Browser/0.10.0 (Xbox 360; NativeBrowser)\r\nAccept: %s\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.8\r\nConnection: close\r\n\r\n",path,host,accept);
    r->started=GetTickCount();
    ok=br_sslio_write_all(&r->io,request,strlen(request))==0&&br_sslio_flush(&r->io)==0;
   }

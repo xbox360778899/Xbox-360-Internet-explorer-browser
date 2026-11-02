@@ -1,4 +1,4 @@
-// X360Browser 0.9.2-search-results-visibility-preview: native HTML/CSS, media and green browser chrome. GPL-3.0.
+// X360Browser 0.10.0-dom-foundation-preview: native HTML/CSS, media and green browser chrome. GPL-3.0.
 #include <xtl.h>
 #include <winsockx.h>
 #include <d3d9.h>

@@ -1,6 +1,7 @@
 // Bounded Duktape ES5 bridge for basic inline DOM updates.
 // This is not a complete browser DOM or a promise of modern JS compatibility.
 #include "web_js.h"
+#include "web_dom_bootstrap.h"
 #include "native_document.h"
 #ifdef X360BROWSER_HOST_TEST
 #include <windows.h>
@@ -15,7 +16,7 @@
 #include <string>
 
 struct BrowserJSQuota {size_t used,limit;DWORD deadline;};
-struct BrowserJSChunk{std::string id,value;bool text;};
+struct BrowserJSChunk{std::string id,value;bool text,append;};
 struct BrowserJSState{
     std::string writes;std::vector<BrowserJSChunk> edits;
     BrowserJSState(){}
@@ -63,7 +64,18 @@ static duk_ret_t jsSet(duk_context* ctx){
     const char* id=duk_safe_to_string(ctx,0);
     const char* value=duk_safe_to_string(ctx,1);
     if(strlen(id)>0 && strlen(id)<128 && strlen(value)<16384){
-        BrowserJSChunk chunk;chunk.id=id;chunk.value=value;chunk.text=duk_get_boolean(ctx,2)!=0;
+        BrowserJSChunk chunk;chunk.id=id;chunk.value=value;chunk.text=duk_get_boolean(ctx,2)!=0;chunk.append=false;
+        state->edits.push_back(chunk);
+    }
+    return 0;
+}
+static duk_ret_t jsAppend(duk_context* ctx){
+    BrowserJSState* state=activeState(ctx);
+    if(!state || state->edits.size()>=64)return 0;
+    const char* id=duk_safe_to_string(ctx,0);
+    const char* markup=duk_safe_to_string(ctx,1);
+    if(strlen(id)<128 && strlen(markup)<16384){
+        BrowserJSChunk chunk;chunk.id=id;chunk.value=markup;chunk.text=false;chunk.append=true;
         state->edits.push_back(chunk);
     }
     return 0;
@@ -95,6 +107,13 @@ static std::string htmlEscaped(const std::string& s){
     return result;
 }
 static void applyEdit(std::string& html,const BrowserJSChunk& edit){
+    if(edit.append && edit.id=="__body__"){
+        size_t closing=0;
+        while(closing<html.size() && !asciiCI(html,closing,"</body"))++closing;
+        if(closing<html.size() && html.size()+edit.value.size()<1024u*1024u)
+            html.insert(closing,edit.value);
+        return;
+    }
     size_t where=0;
     while((where=html.find("id=",where))!=std::string::npos){
         size_t start=where+3;if(start>=html.size())return;
@@ -112,7 +131,13 @@ static void applyEdit(std::string& html,const BrowserJSChunk& edit){
         std::string close="</"+html.substr(tagName,tagEnd-tagName)+">";
         size_t closeAt=html.find(close,openEnd+1);
         if(closeAt==std::string::npos)return;
-        html.replace(openEnd+1,closeAt-openEnd-1,edit.text?htmlEscaped(edit.value):edit.value);
+        if(edit.append){
+            if(html.size()+edit.value.size()<1024u*1024u)html.insert(closeAt,edit.value);
+        } else {
+            std::string updated=edit.text?htmlEscaped(edit.value):edit.value;
+            if(html.size()-(closeAt-openEnd-1)+updated.size()<1024u*1024u)
+                html.replace(openEnd+1,closeAt-openEnd-1,updated);
+        }
         return;
     }
 }
@@ -137,7 +162,16 @@ bool browserJSPreprocess(const char* html,const char* baseURL,std::string& outpu
     duk_push_pointer(ctx,&state);duk_put_global_string(ctx,"__browserState");
     duk_push_c_function(ctx,jsWrite,1);duk_put_global_string(ctx,"__write");
     duk_push_c_function(ctx,jsSet,3);duk_put_global_string(ctx,"__set");
-    duk_peval_string(ctx,bootstrap);duk_pop(ctx);
+    duk_push_c_function(ctx,jsAppend,2);duk_put_global_string(ctx,"__append");
+    if(duk_peval_string(ctx,bootstrap)!=0){duk_pop(ctx);duk_destroy_heap(ctx);return false;}
+    duk_pop(ctx);
+    if(duk_peval_string(ctx,browserDOMBootstrap)!=0){
+#ifdef X360BROWSER_HOST_TEST
+        printf("DOM bootstrap error: %.160s\n",duk_safe_to_string(ctx,-1));
+#endif
+        duk_pop(ctx);duk_destroy_heap(ctx);return false;
+    }
+    duk_pop(ctx);
     size_t pos=0;int scripts=0,externalLoaded=0;
     while(scripts<24 && GetTickCount()<quota.deadline){
         size_t open=findTag(output,"script",pos);if(open==std::string::npos)break;
@@ -198,6 +232,19 @@ bool browserJSPreprocess(const char* html,const char* baseURL,std::string& outpu
         }
         pos=closeEnd+1;++scripts;
         if(pos>=output.size()||output.size()>1024*1024)break;
+    }
+    // Simulate the initial DOMContentLoaded event after classic scripts ran.
+    // Actual runtime events and network-driven DOM mutation require a full engine.
+    size_t readyBefore=state.edits.size();
+    state.writes.clear();
+    quota.deadline=GetTickCount()+300;
+    int readyResult=duk_peval_string(ctx,"__fireDOMReady();");
+    if(readyResult!=0){if(failed)++*failed;}
+    duk_pop(ctx);
+    for(size_t i=readyBefore;i<state.edits.size();++i)applyEdit(output,state.edits[i]);
+    if(!state.writes.empty()&&output.size()+state.writes.size()<1024u*1024u){
+        BrowserJSChunk extra;extra.id="__body__";extra.value=state.writes;extra.text=false;extra.append=true;
+        applyEdit(output,extra);
     }
     duk_destroy_heap(ctx);
     return true;
