@@ -309,7 +309,7 @@ static void click() {
     }
     if(home) {
         int hit=nativeHomeHit((int)mouseX,(int)mouseY);
-        const char* urls[]={"https://www.google.com/","https://x360hub.vercel.app/","https://en.wikipedia.org/wiki/Main_Page","https://example.com/"};
+        const char* urls[]={"https://www.google.com/?hl=en","https://x360hub.vercel.app/","https://en.wikipedia.org/wiki/Main_Page","https://example.com/"};
         if(hit==0)openKeyboard();else if(hit>=1 && hit<=4)navigate(urls[hit-1]);else if(hit==5)navigate("browser:help");
     } else {
         NativeView googleView=makeView();

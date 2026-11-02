@@ -84,7 +84,10 @@ static bool webSearchOrURL(const char* input,char* output,size_t capacity,bool g
         if(isalnum(*p) || *p=='-' || *p=='_')output[n++]=*p;
         else {output[n++]='%';output[n++]=hex[*p>>4];output[n++]=hex[*p&15];}
     }
-    output[n]=0;return true;
+    // Force English for queries sent to Google, independent of console locale.
+    if(n+7>capacity)return false;
+    memcpy(output+n,"&hl=en",7);
+    return true;
 }
 static int webUTF8(unsigned code,char* out) {
     if(!code || code>0x10ffff || (code>=0xd800 && code<=0xdfff))code='?';

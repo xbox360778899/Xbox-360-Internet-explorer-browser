@@ -1,35 +1,37 @@
-# Google Search no Xbox 360 — diagnóstico do porte QuickJS
+# Google Search on Xbox 360: QuickJS port diagnostic
 
-**Status: ainda não funciona.** Este documento registra um teste real de compilação, não um lançamento do motor moderno.
+**Status: Not working yet.** This document records real PowerPC compilation experiments. It does not announce a working modern browser engine.
 
-## O que foi testado
+## What was tested
 
-- SDK Xbox 360 2010-01, Visual Studio 2010 e compilador PowerPC Xenon, que compilam normalmente o X360Browser atual.
-- QuickJSpp (https://github.com/c-smile/quickjspp), porta do QuickJS para Microsoft Visual C++ destinada a VS2017/VS2019.
-- Projeto isolado XEX com quickjs.c, libregexp.c, libunicode.c, cutils.c e script ECMAScript moderno de teste (const, arrow functions e Array.map).
-- Ajustes experimentais para inttypes.h, fenv.h, windows.h, intrin.h, endianness big-endian do Xbox e inline.
+- Xbox 360 SDK 2010-01, Visual Studio 2010, and the Xenon PowerPC compiler, which successfully build the existing X360Browser.
+- QuickJSpp (https://github.com/c-smile/quickjspp), a QuickJS port for Microsoft Visual C++ intended for VS2017 and VS2019.
+- An isolated XEX project with `quickjs.c`, `libregexp.c`, `libunicode.c`, `cutils.c`, and a small modern JavaScript test using `const`, arrow functions, and `Array.map`.
+- Experimental changes for `inttypes.h`, `fenv.h`, `windows.h`, `intrin.h`, Xbox big-endian byte order, and C `inline`.
 
-**Resultado:** o protótipo QuickJS NÃO compilou em PowerPC XDK. Após ajustar os primeiros cabeçalhos, a tentativa C gerou pelo menos **102 erros** antes do limite do compilador (declarações C99 e incompatibilidades de tipo). A tentativa C++ gerou pelo menos **126 erros** (conversões inválidas de void*, _BitScan*, _msize e outras APIs ausentes). Os números são parciais. QuickJSpp oficialmente descreve suporte a Visual Studio 2017/2019, não ao compilador PowerPC do Xbox SDK 2010.
+**Result:** The QuickJS prototype **did not compile** with the Xbox 360 PowerPC SDK. After fixing the initial missing headers, the C compilation path produced at least **102 errors** before reaching the compiler's error limit, including C99 declaration and type incompatibilities. The C++ path produced at least **126 errors**, including invalid `void*` conversions and missing `_BitScan*` and `_msize` functions. These are incomplete counts because compilation stopped at the error limit.
 
-Por isso, nenhuma parte dessa tentativa quebrada foi ligada ao default.xex de produção. Duktape continua sendo o motor ativo; não houve substituição validada.
+No failed experimental code was linked into the production `default.xex`. Duktape remains the active JavaScript engine, and no modern replacement has been validated.
 
-## Teste verificável do Google
+## Reproducible Google Search test
 
-Execute na raiz do projeto:
+From the project root, run:
 
-    python tools/verify_google_results.py
+```bash
+python tools/verify_google_results.py
+```
 
-Em 01/11/2026, a resposta direta de https://www.google.com/search?q=Xbox%20360 foi HTTP 200 com aproximadamente 93 KB, mas continha a exigência de JavaScript em /httpservice/retry/enablejs e nenhum resultado orgânico real. O teste exibiu FAIL. Com identificação de navegador Lynx, o Google respondeu com pedido de atualização do navegador, também sem resultados. Trocar o User-Agent não é solução.
+On November 1, 2026, the native-style direct request to `https://www.google.com/search?q=Xbox%20360` returned HTTP 200 and approximately 93 KB of HTML, but required JavaScript through `/httpservice/retry/enablejs` and did not include genuine organic results. The test correctly returned **FAIL**. When a Lynx browser identifier was used, Google instead returned an unsupported-browser warning, also without search results. Changing the User-Agent alone is not a solution.
 
-## Para que o Google realmente funcione
+## What is required for actual Google Search support
 
-1. Compilador moderno com ABI Xenon/XDK correto, código PowerPC big-endian e ambiente C/CRT compatível, seguido de porte de runtime ES2020+.
-2. XEX mínimo com o novo motor, executado em Xbox RGH/JTAG real, com limites de memória e execução.
-3. DOM persistente, window/document, eventos, CSSOM, Promise e execução de módulos, em vez do preprocessamento HTML atual.
-4. Web APIs seguras: fetch/XHR, URL, cookies, storage, regras de origem e TLS.
-5. Renderizador HTML/CSS atualizado para Flexbox, Grid e layout web moderno.
-6. Teste final obrigatório: resultados com títulos e links verdadeiramente obtidos do Google, renderizados e clicáveis no Xbox físico. Bing, imagens estáticas e navegadores remotos não contam.
+1. A modern compiler targeting the **correct Xenon/XDK ABI**, PowerPC big-endian code, and a compatible C runtime, followed by a port of an ES2020+ engine.
+2. A minimal native XEX running the engine on a **physical Xbox 360 RGH/JTAG**, with verified execution and memory limits.
+3. A persistent DOM, `window`/`document`, events, CSSOM, promises, and script modules instead of the current HTML preprocessor.
+4. Secure browser Web APIs: fetch/XHR, URL handling, cookies, storage, origin restrictions, and TLS.
+5. Updated HTML/CSS rendering with true Flexbox, Grid, responsive layout, and font support.
+6. A final hardware test showing **real Google result titles and links** rendered and clickable on the Xbox itself. Bing results, screenshots, and remotely rendered pages do not qualify.
 
-O compilador LLVM com suporte ao ABI Xenon do OXDK é um possível caminho de pesquisa, mas não foi instalado nem validado neste computador. O compilador PowerPC genérico do LLVM não substitui automaticamente o ABI do XDK.
+An LLVM toolchain with **Xenon ABI support**, such as experimental OXDK-related compiler work, is a possible research direction, but has **not** been installed or validated here. Generic LLVM PowerPC support does not automatically match the proprietary XDK ABI.
 
-**Até passar no teste acima, a pesquisa Google continua não implementada.**
+**Until the requirements above are met, actual Google Search results remain unsupported.** The browser itself must continue running directly on the console without any PC, remote browser, or intermediary server.

@@ -64,7 +64,7 @@ def main():
         headers={
             "User-Agent": USER_AGENT,
             "Accept": "text/html,application/xhtml+xml",
-            "Accept-Language": "pt-BR,pt;q=0.9",
+            "Accept-Language": "en-US,en;q=0.9",
         },
     )
     try:
@@ -82,7 +82,7 @@ def main():
     if "/httpservice/retry/enablejs" in text:
         print("FAIL: Real Google responded with a JavaScript-required interstitial, not results.")
         return 1
-    if "Atualize o navegador" in text or "Your browser is no longer supported" in text:
+    if "Your browser is no longer supported" in text or "Please update your browser" in text:
         print("FAIL: Real Google rejected this browser as unsupported.")
         return 1
 

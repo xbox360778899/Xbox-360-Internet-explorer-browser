@@ -96,7 +96,7 @@ bool browserGoogleSearchNotice(const char* googleURL,std::string& html){
     html+="<p>The actual Google response did not contain search results. It requested a modern JavaScript-enabled browser. X360Browser cannot run this Google page yet.</p>";
     if(safeQuery(query)){
         html+="<p>Search requested: <strong>"+escaped(decodeQuery(query))+"</strong></p>";
-        std::string alternate="https://www.bing.com/search?q="+query+"&format=rss";
+        std::string alternate="https://www.bing.com/search?q="+query+"&format=rss&mkt=en-US";
         html+="<a class='action' href='"+escaped(alternate)+"'>Search with Bing instead (real results, different provider)</a>";
         html+="<p class='note'>Bing is NOT Google. Selecting this link sends your search terms to Bing. Nothing is sent to Bing unless you select it.</p>";
     }
@@ -159,6 +159,6 @@ bool browserRenderBingRSS(const char* url,const char* rss,int size,std::string& 
         ++found;
     }
     if(items)*items=found;
-    html+="<p><a href='https://www.google.com/'>Google home</a></p></div></body></html>";
+    html+="<p><a href='https://www.google.com/?hl=en'>Google home</a></p></div></body></html>";
     return found>0 && html.size()<WEB_HTML_LIMIT;
 }

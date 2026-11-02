@@ -1,65 +1,65 @@
 # X360Browser
 
-**Navegador experimental que roda 100% diretamente no Xbox 360 RGH/JTAG.** É um aplicativo nativo `default.xex`, feito para o processador PowerPC do console. **Não precisa de PC, streaming, navegador remoto, proxy ou servidor intermediário** para funcionar.
+**An experimental web browser that runs 100% natively on Xbox 360 RGH/JTAG.** X360Browser is a PowerPC application distributed as `default.xex`. It does **not** require a PC, remote browser, streaming service, proxy, or intermediary server.
 
-A conexão é direta do Xbox 360 com os sites da internet. **Os servidores dos próprios sites continuam necessários**, assim como a conexão com a internet. Recursos como o catálogo X360HUB consultam dados públicos do próprio site.
+Your Xbox 360 connects directly to websites over the internet. **An internet connection and the websites' own servers are still required** to access online pages. The X360HUB catalog reads publicly available data directly from its official website.
 
-![X360Browser](docs/green-home.png)
+![X360Browser home screen](docs/green-home.png)
 
-## Baixar e instalar
+## Download and install
 
-**Versão atual: 0.10.0 (experimental)**
+**Current version: 0.10.0 (experimental)**
 
-[Baixar default.xex](https://github.com/heltindev/X360Browser/releases/download/v0.10.0-dom-foundation-preview/default.xex) · [Ver a versão atual](https://github.com/heltindev/X360Browser/releases/tag/v0.10.0-dom-foundation-preview)
+[Download default.xex](https://github.com/heltindev/X360Browser/releases/download/v0.10.0-dom-foundation-preview/default.xex) | [Current release](https://github.com/heltindev/X360Browser/releases/tag/v0.10.0-dom-foundation-preview)
 
-1. Baixe o arquivo `default.xex` na página de Releases.
-2. Copie o arquivo para o HD ou USB do Xbox 360 RGH/JTAG.
-3. Execute o XEX pelo Aurora.
+1. Download `default.xex` from the current release.
+2. Copy the file to your Xbox 360 RGH/JTAG HDD or USB drive.
+3. Launch the XEX with Aurora.
 
-Não é necessário iniciar nada em um computador ou hospedar um servidor próprio. Para páginas HTTPS, mantenha a data/hora do console configuradas corretamente.
+No PC application or self-hosted server is necessary. Make sure your console's date and time are correct for HTTPS certificates.
 
-## O que já existe
+## Current features
 
-- Interface escura e verde, estilo Smart TV, com barra que se recolhe.
-- Mouse virtual pelo controle, até quatro abas, histórico e barra de endereço.
-- Download direto de páginas HTML, CSS e imagens por HTTP/HTTPS.
-- Suporte parcial a JavaScript e layout responsivo; imagens JPEG, PNG, BMP e primeiro quadro de GIF.
-- Página inicial do Google com busca; resultados do Google ainda não funcionam corretamente.
-- Alternativa opcional de resultados do Bing, identificada como Bing.
-- Visualização do catálogo X360HUB com dados públicos recebidos diretamente pelo console.
+- Dark and green Smart TV-inspired interface with an auto-hiding toolbar.
+- Controller-operated mouse cursor, up to four tabs, history, and an address bar.
+- Direct HTTP/HTTPS downloads of supported HTML, CSS, and images.
+- Partial JavaScript and responsive layout support; JPEG, PNG, BMP, and the first frame of GIF images.
+- Google homepage and a native search field; actual Google search results are **not working yet**.
+- Optional, clearly identified Bing search results as a separate provider.
+- A native view of the X360HUB catalog using public data fetched by the console.
 
-**Atenção:** é uma versão em desenvolvimento. Nem todos os sites abrem corretamente. Os testes em PC não substituem um teste no Xbox 360 físico.
+**Important:** This is an experimental build. Many modern websites are not fully supported. Windows-host tests do not replace testing on real Xbox 360 hardware.
 
-## Controles
+## Controller buttons
 
-| Botão | Função |
+| Button | Action |
 |---|---|
-| Analógico esquerdo / direcional | Mover cursor |
-| A | Clicar |
-| LT / RT ou analógico direito | Rolar a página |
-| B / LB | Voltar |
-| RB | Avançar |
-| Y / X | Endereço ou pesquisa |
-| START / R3 | Recarregar |
-| BACK | Página inicial |
-| L3 | Menu |
+| Left stick / D-pad | Move the cursor |
+| A | Click |
+| LT / RT or right stick | Scroll |
+| B / LB | Back |
+| RB | Forward |
+| Y / X | Address bar or search |
+| START / R3 | Reload |
+| BACK | Home screen |
+| L3 | Open the menu |
 
-## O que falta atualizar
+## Development roadmap
 
-- **Motor JavaScript moderno:** portar um motor compatível com o Xbox 360 PowerPC.
-- **DOM completo:** eventos, formulários, atualização dinâmica das páginas e navegação.
-- **Web APIs:** implementar fetch, XHR, cookies, armazenamento, tarefas assíncronas e compatibilidade HTTPS.
-- **HTML/CSS:** melhorar Flexbox, Grid, fontes, posicionamento e páginas responsivas.
-- **Google:** carregar e navegar pelos resultados reais, sem tela branca ou outro buscador no lugar.
-- **Vídeos:** adicionar suporte real a MP4/H.264, reprodução HTML5 e, futuramente, sites como YouTube.
-- **Estabilidade:** corrigir bugs, uso de memória, velocidade e testar cada recurso em um Xbox físico.
+- **Modern JavaScript engine:** Port a modern ECMAScript runtime to Xbox 360 PowerPC.
+- **Complete DOM:** Implement persistent nodes, events, forms, and dynamic page updates.
+- **Browser Web APIs:** Support fetch/XHR, cookies, storage, asynchronous tasks, and web security rules.
+- **HTML/CSS:** Improve Flexbox, Grid, fonts, positioning, and responsive layouts.
+- **Google Search:** Display and navigate actual Google results without a blank screen or a substitute provider.
+- **Video:** Implement real MP4/H.264 and HTML5 video playback, with longer-term support for video websites.
+- **Performance and reliability:** Fix crashes, memory limits, rendering speed, and hardware compatibility.
 
-Tudo isso deve funcionar **localmente no próprio Xbox 360**, sem depender de PC ou servidor intermediário.
+**All browser execution must remain local to the Xbox 360**, without a PC, remote browser, or intermediary server. Online websites still use their own internet servers.
 
-## Desenvolvimento
+## Building from source
 
-Código C/C++ para **Visual Studio 2010 + Xbox 360 SDK**. Para compilar, execute `build-release.cmd`; o resultado é `Release/default.xex`.
+The project is written in C/C++ for **Visual Studio 2010 + Xbox 360 SDK**. Run `build-release.cmd` to produce `Release/default.xex`.
 
-A versão atual usa litehtml e Duktape, com limitações conhecidas. O projeto é independente, não afiliado à Microsoft, LG ou Google. Licença: GPL-3.0. Bibliotecas e licenças em [THIRD_PARTY.md](THIRD_PARTY.md).
+The current build uses litehtml and Duktape, with known limitations. It is an independent project, not affiliated with Microsoft, LG, or Google. Licensed under GPL-3.0. See [THIRD_PARTY.md](THIRD_PARTY.md) for third-party notices.
 
-**Desenvolvido por [@heltonleiras](https://github.com/heltindev).**
+**Developed by [@heltonleiras](https://github.com/heltindev).**

@@ -1,5 +1,15 @@
 # Changelog
 
+## English-only cleanup - 2026-11-01
+
+- Translate the README and QuickJS/XDK diagnostic documentation into English.
+- Replace the remaining Portuguese text in the native Google search field and button.
+- Request the English Google homepage (`?hl=en`) and append `hl=en` to native Google searches.
+- Update browser screenshots, the release description and the development verification records.
+- Preserve native Xbox 360 execution with no PC, remote browser or intermediary server. The browser still depends on each site's own servers for online pages.
+- Actual Google search results, modern JavaScript and MP4/H.264 remain unsupported; physical-console testing is still required.
+
+
 ## Technical investigation — native Google Search / QuickJS (2026-11-01)
 
 - Tested a minimal QuickJSpp PowerPC-XDK probe with a modern-JS expression; the MSVC 2010 C/C++ toolchain could not compile it. This is not integrated into the release XEX.

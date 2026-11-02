@@ -19,10 +19,11 @@ static void save(const char* path) {
 #include "styled_checks.h"
 static void checks() {
     char url[WEB_URL];
-    assert(webSearchOrURL("Xbox 360",url,sizeof(url)) && !strcmp(url,"https://www.google.com/search?q=Xbox%20360"));
+    assert(webSearchOrURL("Xbox 360",url,sizeof(url)) && !strcmp(url,"https://www.google.com/search?q=Xbox%20360&hl=en"));
     assert(webSearchOrURL("xbox 360",url,sizeof(url),true) && webPrefix(url,"https://www.google.com/search?q="));
-    assert(webSearchOrURL("x360hub.com",url,sizeof(url),true) && !strcmp(url,"https://www.google.com/search?q=x360hub%2Ecom"));
+    assert(webSearchOrURL("x360hub.com",url,sizeof(url),true) && !strcmp(url,"https://www.google.com/search?q=x360hub%2Ecom&hl=en"));
     assert(browserGoogleHomeURL("https://www.google.com/"));
+    assert(browserGoogleHomeURL("https://www.google.com/?hl=en"));
     assert(!browserGoogleHomeURL("https://www.google.com/search?q=test"));
     std::string invalidGoogle;assert(!browserGooglePrepareHTML("https://www.google.com/","<html>not Google</html>",invalidGoogle));
     assert(webResolveURL("https://example.com/a/b","/test?q=1",url,sizeof(url)) && !strcmp(url,"https://example.com/test?q=1"));
@@ -99,16 +100,16 @@ static void searchResultsChecks(){
     assert(!browserGoogleRequiresJS("<html><title>Google Search</title><p>results</p></html>"));
     std::string html;
     assert(browserGoogleSearchNotice("https://www.google.com/search?q=Xbox%20360",html));
-    assert(html.find("https://www.bing.com/search?q=Xbox%20360&amp;format=rss")!=std::string::npos);
+    assert(html.find("https://www.bing.com/search?q=Xbox%20360&amp;format=rss&amp;mkt=en-US")!=std::string::npos);
     assert(html.find("NOT Google")==std::string::npos || html.find("Bing")!=std::string::npos);
     assert(html.find("Xbox 360")!=std::string::npos);
-    assert(browserIsBingRSSURL("https://www.bing.com/search?q=Xbox%20360&format=rss"));
+    assert(browserIsBingRSSURL("https://www.bing.com/search?q=Xbox%20360&format=rss&mkt=en-US"));
     assert(!browserIsBingRSSURL("https://www.bing.com/search?q=Xbox%20360"));
     webParseHTML(&document,html.c_str(),"https://www.google.com/search?q=Xbox%20360");
     assert(document.linkCount>=2);
     bool optIn=false;
     for(int i=0;i<document.linkCount;++i)
-        if(strstr(document.links[i],"bing.com/search?q=Xbox%20360&format=rss"))optIn=true;
+        if(strstr(document.links[i],"bing.com/search?q=Xbox%20360&format=rss&mkt=en-US"))optIn=true;
     assert(optIn);
     const char* feed="<?xml version='1.0'?><rss version='2.0'><channel>"
        "<item><title>X &amp; Y</title><link>https://example.com/a?x=1&amp;y=2</link>"
@@ -116,12 +117,12 @@ static void searchResultsChecks(){
        "<item><title>Another</title><link>https://example.com/b</link>"
        "<description>Second result</description></item></channel></rss>";
     int items=0;
-    assert(browserRenderBingRSS("https://www.bing.com/search?q=one&format=rss",feed,(int)strlen(feed),html,&items));
+    assert(browserRenderBingRSS("https://www.bing.com/search?q=one&format=rss&mkt=en-US",feed,(int)strlen(feed),html,&items));
     assert(items==2 && html.find("X &amp; Y")!=std::string::npos &&
            html.find("Real content")!=std::string::npos &&
            html.find("https://example.com/a?x=1&amp;y=2")!=std::string::npos);
     assert(html.find("NOT Google")!=std::string::npos);
-    assert(!browserRenderBingRSS("https://www.bing.com/search?q=test&format=rss",
+    assert(!browserRenderBingRSS("https://www.bing.com/search?q=test&format=rss&mkt=en-US",
            "<html>not rss</html>",20,html,&items));
     printf("PASS: real Google JS-required interstitial detected, opt-in Bing fallback, RSS escaped and clickable.\n");
 }
@@ -236,7 +237,7 @@ static void networkGoogleSearchFallbackCheck(){
         char clicked[WEB_URL]="";
         bool clickedOptIn=browserStyledClick(page,135,275,clicked,sizeof(clicked));
         printf("GOOGLE notice clickable: hit=%d url=%.150s\n",clickedOptIn,clicked);
-        if(!clickedOptIn || strcmp(clicked,"https://www.bing.com/search?q=Xbox%20360&format=rss"))exit(10);
+        if(!clickedOptIn || strcmp(clicked,"https://www.bing.com/search?q=Xbox%20360&format=rss&mkt=en-US"))exit(10);
         webParseHTML(&document,notice.c_str(),googleURL);
         document.styled=page;
         xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);
@@ -249,7 +250,7 @@ static void networkGoogleSearchFallbackCheck(){
        gotGoogle?"OK":"FAIL",blocked,shown,shown?document.linkCount:0,message);
     if(!gotGoogle||!blocked||!shown||!page||document.linkCount<2)exit(8);
     browserStyledDestroy(page);free(google.bytes);
-    const char* alternate="https://www.bing.com/search?q=Xbox%20360&format=rss";
+    const char* alternate="https://www.bing.com/search?q=Xbox%20360&format=rss&mkt=en-US";
     WebDownload feed={0};char issue[192]="";
     bool downloaded=webDownload(alternate,&feed,issue,sizeof(issue));
     std::string listing;int count=0;
@@ -272,7 +273,7 @@ static void networkGoogleSearchFallbackCheck(){
 static void networkGoogleHomepageCheck(){
     webNetState.cancel=0;WebDownload page={0};char err[192]="";
     DWORD start=GetTickCount();
-    bool ok=webDownload("https://www.google.com/",&page,err,sizeof(err));
+    bool ok=webDownload("https://www.google.com/?hl=en",&page,err,sizeof(err));
     std::string realGoogle;
     bool transformed=ok && browserGooglePrepareHTML(page.url,(const char*)page.bytes,realGoogle);
     void* styled=transformed?browserStyledCreate(realGoogle.c_str(),page.url,webStyledResourceFetch,NULL):NULL;

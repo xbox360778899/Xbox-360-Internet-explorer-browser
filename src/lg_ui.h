@@ -24,9 +24,9 @@ static void lgGoogleSearchOverlay(xui_canvas_t* c,const NativeView* view){
     xui_round_rect(c,328,274+offset,624,60,28,0xffffff,255);
     xui_round_frame(c,328,274+offset,624,60,28,hover?3:2,hover?0x4285f4:0xdadce0);
     xui_mask(c,&shell_search,350,291+offset,0x60666d,255);
-    browserText(c,XUI_F_BODY,398,293+offset,"Pesquisar no Google",0x5f6368,500);
+    browserText(c,XUI_F_BODY,398,293+offset,"Search Google",0x5f6368,500);
     xui_round_rect(c,503,354+offset,274,47,7,hoverButton?0xe6f0ff:0xf8f9fa,255);
-    browserCentered(c,XUI_F_BODY,503,354+offset,274,47,"Pesquisa Google",0x202124);
+    browserCentered(c,XUI_F_BODY,503,354+offset,274,47,"Google Search",0x202124);
 }
 static int lgPageTop(const NativeView* view){return view->chrome?76:0;}
 static int nativeHitLink(const NativeView* view) {
