@@ -9,6 +9,7 @@ static void errorMessage(char* output,size_t capacity,DWORD error){sprintf_s(out
 #include "web_js.h"
 #include "web_compat.h"
 #include "google_home.h"
+#include "search_results.h"
 static WebDocument document;
 static uint32_t screen[1280*720];
 static void save(const char* path) {
@@ -89,6 +90,41 @@ static void compatCatalogChecks(){
     assert(!browserCompatRenderCatalog("https://x360hub.vercel.app/ports.html","{}",2,html,&count));
     printf("PASS: actual-site JSON compatibility renderer, escaped text, image links and pagination.\n");
 }
+static void searchResultsChecks(){
+    const char* googlePage="<html><head><title>Google Search</title></head><body>"
+      "<noscript><style>div,p{display:none}</style><a href='/httpservice/retry/enablejs?sei=test'>Enable JS</a></noscript></body></html>";
+    assert(browserIsGoogleSearchURL("https://www.google.com/search?q=Xbox%20360"));
+    assert(!browserIsGoogleSearchURL("https://www.google.com/"));
+    assert(browserGoogleRequiresJS(googlePage));
+    assert(!browserGoogleRequiresJS("<html><title>Google Search</title><p>results</p></html>"));
+    std::string html;
+    assert(browserGoogleSearchNotice("https://www.google.com/search?q=Xbox%20360",html));
+    assert(html.find("https://www.bing.com/search?q=Xbox%20360&amp;format=rss")!=std::string::npos);
+    assert(html.find("NOT Google")==std::string::npos || html.find("Bing")!=std::string::npos);
+    assert(html.find("Xbox 360")!=std::string::npos);
+    assert(browserIsBingRSSURL("https://www.bing.com/search?q=Xbox%20360&format=rss"));
+    assert(!browserIsBingRSSURL("https://www.bing.com/search?q=Xbox%20360"));
+    webParseHTML(&document,html.c_str(),"https://www.google.com/search?q=Xbox%20360");
+    assert(document.linkCount>=2);
+    bool optIn=false;
+    for(int i=0;i<document.linkCount;++i)
+        if(strstr(document.links[i],"bing.com/search?q=Xbox%20360&format=rss"))optIn=true;
+    assert(optIn);
+    const char* feed="<?xml version='1.0'?><rss version='2.0'><channel>"
+       "<item><title>X &amp; Y</title><link>https://example.com/a?x=1&amp;y=2</link>"
+       "<description>Real &lt;b&gt;content&lt;/b&gt;.</description></item>"
+       "<item><title>Another</title><link>https://example.com/b</link>"
+       "<description>Second result</description></item></channel></rss>";
+    int items=0;
+    assert(browserRenderBingRSS("https://www.bing.com/search?q=one&format=rss",feed,(int)strlen(feed),html,&items));
+    assert(items==2 && html.find("X &amp; Y")!=std::string::npos &&
+           html.find("Real content")!=std::string::npos &&
+           html.find("https://example.com/a?x=1&amp;y=2")!=std::string::npos);
+    assert(html.find("NOT Google")!=std::string::npos);
+    assert(!browserRenderBingRSS("https://www.bing.com/search?q=test&format=rss",
+           "<html>not rss</html>",20,html,&items));
+    printf("PASS: real Google JS-required interstitial detected, opt-in Bing fallback, RSS escaped and clickable.\n");
+}
 static void jsChecks(){
     std::string output;int ran=0,failed=0;
     const char* html="<html><body><div id='target'>OLD</div><script>"
@@ -165,6 +201,51 @@ static void networkRealCSSCheck(const char* url,const char* name){
        name,ok?"OK":"FAILED",css,failed,GetTickCount()-start,error);
     if(page){xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);browserStyledDraw(page,&canvas,0,0,1280,720,0);printf("RENDER %s: pixel(4,4)=%06X pixel(640,400)=%06X\n",name,screen[4*1280+4]&0xffffff,screen[400*1280+640]&0xffffff);save("obj/x360hub-real.ppm");browserStyledDestroy(page);}
     free(dl.bytes);
+}
+static void networkGoogleSearchFallbackCheck(){
+    webNetState.cancel=0;
+    const char* googleURL="https://www.google.com/search?q=Xbox%20360";
+    WebDownload google={0};char message[192]="";
+    bool gotGoogle=webDownload(googleURL,&google,message,sizeof(message));
+    bool blocked=gotGoogle && browserGoogleRequiresJS((const char*)google.bytes);
+    std::string notice;bool shown=blocked && browserGoogleSearchNotice(googleURL,notice);
+    void* page=shown?browserStyledCreate(notice.c_str(),googleURL,NULL,NULL):NULL;
+    if(page){
+        char clicked[WEB_URL]="";
+        bool clickedOptIn=browserStyledClick(page,135,275,clicked,sizeof(clicked));
+        printf("GOOGLE notice clickable: hit=%d url=%.150s\n",clickedOptIn,clicked);
+        if(!clickedOptIn || strcmp(clicked,"https://www.bing.com/search?q=Xbox%20360&format=rss"))exit(10);
+        webParseHTML(&document,notice.c_str(),googleURL);
+        document.styled=page;
+        xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);
+        NativeView v={false,false,false,4,230,245,0,googleURL,
+             "Google JS required; Bing requires explicit opt-in",&document,false,false,0,false};
+        nativeRender(&canvas,&v);save("obj/google-js-required-notice.ppm");
+        document.styled=NULL;
+    }
+    printf("NETWORK GOOGLE query: download=%s requiresJS=%d nativeNotice=%d links=%d %s\n",
+       gotGoogle?"OK":"FAIL",blocked,shown,shown?document.linkCount:0,message);
+    if(!gotGoogle||!blocked||!shown||!page||document.linkCount<2)exit(8);
+    browserStyledDestroy(page);free(google.bytes);
+    const char* alternate="https://www.bing.com/search?q=Xbox%20360&format=rss";
+    WebDownload feed={0};char issue[192]="";
+    bool downloaded=webDownload(alternate,&feed,issue,sizeof(issue));
+    std::string listing;int count=0;
+    bool rendered=downloaded && browserRenderBingRSS(alternate,(const char*)feed.bytes,(int)feed.size,listing,&count);
+    void* styled=rendered?browserStyledCreate(listing.c_str(),alternate,NULL,NULL):NULL;
+    if(styled){
+        webParseHTML(&document,listing.c_str(),alternate);
+        document.styled=styled;
+        xui_canvas_t canvas;xui_canvas_init(&canvas,screen,1280,720,1280);
+        NativeView v={false,false,false,4,240,340,0,alternate,
+                        "Bing RSS real results, not Google",&document,false,false,0,false};
+        nativeRender(&canvas,&v);save("obj/bing-live-search.ppm");
+        document.styled=NULL;
+    }
+    printf("NETWORK BING RSS: download=%s results=%d links=%d rendered=%d %s\n",
+        downloaded?"OK":"FAIL",count,rendered?document.linkCount:0,styled!=NULL,issue);
+    if(!downloaded||!rendered||count<5||!styled||document.linkCount<count)exit(9);
+    browserStyledDestroy(styled);free(feed.bytes);
 }
 static void networkGoogleHomepageCheck(){
     webNetState.cancel=0;WebDownload page={0};char err[192]="";
@@ -264,11 +345,12 @@ int main(int argc,char**) {
     setvbuf(stdout,NULL,_IONBF,0);
     checks();
     compatCatalogChecks();
+    searchResultsChecks();
     jsChecks();
     compressedFixtures();
     mediaChecks();
     cacheChecks();
     styledChecks();
-    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();networkRealCSSCheck("https://x360hub.vercel.app/","X360HUB");networkJSCheck();networkGoogleHomepageCheck();networkLiveCatalogCheck();WSACleanup();}
+    if(argc>1){WSADATA data;assert(WSAStartup(MAKEWORD(2,2),&data)==0);networkCheck("https://example.com/","example");networkCheck("https://www.bing.com/search?q=Xbox%20360","bing");networkCheck("https://www.google.com/search?q=Xbox%20360","google");networkImageCheck();networkStyledCheck();networkRealCSSCheck("https://x360hub.vercel.app/","X360HUB");networkJSCheck();networkGoogleHomepageCheck();networkGoogleSearchFallbackCheck();networkLiveCatalogCheck();WSACleanup();}
     return 0;
 }

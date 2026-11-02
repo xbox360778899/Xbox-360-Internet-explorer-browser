@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.2-search-results-visibility-preview - 2026-11-01
+
+- Reproduce real Google search blank screen: Google serves JS-required interstitial without server-rendered search results, including a no-script CSS hide rule.
+- Intercept exactly those actual Google search responses, and display a truthful, clickable and visible explanation instead of a blank screen.
+- Keep the original query and Retry Google action; add a separate, opt-in Bing search link; don't send queries to Bing without a click.
+- Fetch Bing RSS on the Xbox over native HTTPS, parse up to 12 live entries and show real titles, descriptions and original HTTPS source links, clearly marked as Bing (never Google).
+- Validate and escape URLs/text, bound RSS/HTML memory consumption, detect invalid feeds and show explicit errors.
+- Test real Google interstitial, actual clickable opt-in link, and 10 real Bing RSS search results on Windows host; compile PowerPC Xbox XEX.
+- Physical Xbox console retest still needed. Full Google results and general modern web app compatibility remain unavailable without a major engine upgrade.
+
+
 ## 0.9.1-google-live-home-preview - 2026-11-01
 
 - Load the real https://www.google.com/ HTML and official Google wordmark over native console HTTPS. No bitmap-only page, local mock or PC relay.

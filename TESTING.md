@@ -49,3 +49,12 @@ Open example.com, then X360HUB. Record final CSS N OK/N failed and JS N OK/N fai
 3. Click the native outlined Google search field with A, type text on the Xbox keyboard and submit. Verify it navigates to https://www.google.com/search?q=YOUR_QUERY. A dotted query such as x360hub.com must remain a Google query.
 4. Wait for the toolbar to retract, then click the same search field and ensure the hitbox moves with the displayed form. Try both toolbar states.
 5. Report the console's actual result (screenshot/error and URL). Passing the Windows-host test does not mean the physical Xbox passed. Modern Google search result pages may still be incomplete because the litehtml + Duktape browser engine is not Chrome.
+
+## 0.9.2 Google search white-screen and opt-in alternate provider (hardware test pending)
+
+1. Install new Release/default.xex; open Google and enter 'Xbox 360' in the native field.
+2. If Google serves its JavaScript-required page, DO NOT show a blank white screen. Show an explanatory screen displaying 'Google Search - JavaScript required', the query, Retry Google, and a distinctly labeled Bing alternative.
+3. Bing search is **opt in**. Click the Bing choice with A. This sends the search string to Bing (not Google) and should produce live search results via RSS over direct Xbox HTTPS.
+4. Confirm the result page identifies Bing, includes multiple titles/descriptions and opens individual source links with A. Use triggers/right-stick to scroll.
+5. Press B to return to the Google explanation. Retry Google if desired. If Google someday serves normal HTML results, the generic browser engine will attempt them.
+6. If anything still fails, capture screen/status and exact address, including the console time/date. Tests on the Windows host cannot certify success on physical Xbox hardware. Google login, modern JavaScript results, autocomplete and MP4 remain unsupported.

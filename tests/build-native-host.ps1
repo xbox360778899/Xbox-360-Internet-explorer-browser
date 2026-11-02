@@ -23,6 +23,7 @@ $xml=@'
     <ClCompile Include="..\src\web_js.cpp" />
     <ClCompile Include="..\src\web_compat.cpp" />
     <ClCompile Include="..\src\google_home.cpp" />
+    <ClCompile Include="..\src\search_results.cpp" />
     <ClCompile Include="..\vendor\duktape\duktape.c"><CompileAs>CompileAsC</CompileAs><ObjectFileName>$(IntDir)host_duktape.obj</ObjectFileName><Optimization>MinSpace</Optimization></ClCompile>
     <ClCompile Include="..\vendor\orbita\xui_gfx.c"><CompileAs>CompileAsCpp</CompileAs></ClCompile>
     <ClCompile Include="..\vendor\orbita\xui_text.c"><CompileAs>CompileAsCpp</CompileAs></ClCompile>

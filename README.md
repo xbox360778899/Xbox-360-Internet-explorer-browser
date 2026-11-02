@@ -1,5 +1,16 @@
 # X360Browser
 
+## 0.9.2-search-results-visibility-preview - Google white-screen diagnosis (2026-11-01)
+
+**The Google query white-screen is reproduced and explained.** Live requests to https://www.google.com/search?q=Xbox%20360 returned HTTP 200 with ~93 KB but ONLY a JavaScript-required error/interstitial, not the actual results. The response included a no-script stylesheet that hides all divs/p paragraphs in litehtml. Google still needs a modern browser engine/DOM to show its true search results. We do not bypass or misrepresent that requirement.
+
+X360Browser now detects the REAL Google's JS-required response and replaces the invisible interstitial with a visible explicit notice, retaining the original search query and a Retry Google link. It ALSO offers a clearly labeled **opt-in Bing alternative** to get usable search results on this console; Bing receives the query only AFTER the user selects that link. The Xbox downloads Bing's actual public RSS search feed via direct HTTPS, parses it on-console and renders clickable titles, descriptions and source URLs using litehtml. **Bing results are never labeled Google results.** If Bing's feed is invalid, a visible error is shown instead of an empty screen.
+
+The live Windows-host regression test confirmed Google JS-required page detection, explicit link hit testing (mouse/pointer click) and **10 Bing search results / 11 links** loaded and rendered. The native XDK release XEX builds. Actual physical Xbox 360 test has NOT been performed for 0.9.2. This does not make arbitrary JavaScript-heavy pages, Google sign-in/autocomplete, YouTube, or MP4 work.
+
+[Google JS-required notice screenshot (actual host rendering)](docs/google-js-required-notice-host.png) and [live Bing results screenshot (actual host rendering)](docs/bing-live-search-host.png).
+
+
 ## 0.9.1-google-live-home-preview - Google homepage (2026-11-01)
 
 **The Google homepage is fetched live** through console-native HTTPS from https://www.google.com/ and rendered from Google's actual HTML, inline CSS, image and links (not a screenshot or locally mocked homepage). The renderer lacked CSS behavior for the legacy HTML center tag: a tiny Google-only compatibility stylesheet now centers the real downloaded Google logo. Because litehtml does not implement functional HTML input fields, the search box and button are native Xbox controls drawn over the actual page and are clickable with the gamepad pointer. Activating either opens the console's on-screen keyboard and sends an escaped query to Google's real search URL. Google search treats dotted terms such as x360hub.com as search text rather than a direct address. The field/button remains aligned when the webOS-inspired top toolbar automatically hides.
